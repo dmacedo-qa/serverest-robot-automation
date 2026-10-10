@@ -1,32 +1,46 @@
-# ServeRest under test. The test-runner service is added in Phase 4.
+# Everything needed to run the suite with Docker only:
 #
-# Image: https://hub.docker.com/r/paulogoncalvesbh/serverest
-# Pinned to 3.2.2 (same version as the published Swagger) and to its digest, verified 2026-10-10.
-# The image is amd64 only; on Apple Silicon it runs under emulation.
+#   docker compose run --rm tests                      # full suite, reports in ./results
+#   docker compose run --rm tests --include smoke tests  # any robot options + test path
+#
+# ServeRest image: https://hub.docker.com/r/paulogoncalvesbh/serverest
+# Pinned to 3.2.2 and to its digest (verified 2026-10-10). The image is amd64 only;
+# on Apple Silicon it runs under emulation.
 x-serverest: &serverest
   image: paulogoncalvesbh/serverest:3.2.2@sha256:45fc7004632a749889a3f8ab3cd6ed4201a346f8dde958d16f342f18b7d40b75
   platform: linux/amd64
   healthcheck:
-    test: ["CMD", "node", "-e", "fetch('http://localhost:3000/usuarios').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+    test: ["CMD", "node", "-e", "fetch('http://localhost:3000/version').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
     interval: 5s
     timeout: 5s
     retries: 12
 
 services:
-  # Main instance. Tokens last the default 600 s.
+  # System under test. Tokens last the default 600 s.
   serverest:
     <<: *serverest
-    container_name: serverest
     command: ["--nodoc"]
     ports:
       - "3000:3000"
 
-  # Second instance whose tokens expire after 5 s, used only by the token-expiry test (AUTH-04).
-  # Start it with: docker compose --profile expiry up -d
+  # Second instance whose tokens expire after 5 s, used only by the token-expiry test (TOK-06).
   serverest-short-token:
     <<: *serverest
-    container_name: serverest-short-token
     command: ["--nodoc", "--timeout", "5"]
     ports:
       - "3001:3000"
     profiles: ["expiry"]
+
+  # Test runner. Starts once ServeRest is healthy and writes reports to ./results.
+  tests:
+    build: .
+    depends_on:
+      serverest:
+        condition: service_healthy
+    environment:
+      ENV: ci
+      BASE_URL: http://serverest:3000
+      SHORT_TOKEN_BASE_URL: http://serverest-short-token:3000
+    volumes:
+      - ./results:/suite/results
+    profiles: ["tests"]

@@ -4,9 +4,6 @@ __pycache__/
 .venv/
 venv/
 
-# Environment
-.env
-
 # Robot Framework / pabot output
 results/
 output.xml
@@ -14,9 +11,6 @@ log.html
 report.html
 pabot_results/
 .pabotsuitenames
-
-# Generated test data (synthetic, but never committed)
-data/generated/
 
 # Allure
 allure-results/

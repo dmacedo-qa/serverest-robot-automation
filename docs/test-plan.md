@@ -2,275 +2,352 @@
 
 | | |
 |---|---|
-| **System under test** | ServeRest 3.2.2, an open-source REST API that simulates an online store |
-| **API reference** | [Swagger UI](https://serverest.dev/) · [swagger.json](https://serverest.dev/swagger.json?lang=pt-BR) (OpenAPI 3.0.0, version 3.2.2) |
+| **System under test** | [ServeRest](https://github.com/ServeRest/ServeRest) 3.2.2, an open-source REST API that simulates an online store |
 | **Runtime** | Docker image `paulogoncalvesbh/serverest:3.2.2`, pinned by digest |
-| **Approach** | Automated API regression with Robot Framework + RequestsLibrary |
-| **Status** | Draft v0.2 (switched from ParaBank to ServeRest on 2026-10-10) |
+| **Tooling** | Robot Framework 7.5 · RequestsLibrary · JSON Schema · pabot |
+| **Version** | 1.0 (2026-10-10) |
 
-## 1. Objective
+## Summary
 
-Provide a fast, reliable regression suite for the ServeRest API. It should verify the documented
-business rules (authentication, roles, validation, cart and stock lifecycle), detect contract drift
-between the Swagger and real responses, and surface security weaknesses. The suite runs unattended
-in CI against a disposable local instance.
+**127 test cases** across 8 areas: positive, negative, edge/boundary, contract, security, and end-to-end. Every expected result was confirmed against a running ServeRest 3.2.2, not just copied from the documentation. **3 are automated** so far (✅ in section 8).
 
-## 2. Scope
+| Area | Positive | Negative | Edge | Contract | Security | Total |
+|---|---:|---:|---:|---:|---:|---:|
+| Authentication and tokens | 4 | 9 | 2 | – | 6 | 21 |
+| Users | 9 | 7 | 7 | – | 4 | 27 |
+| Products | 6 | 7 | 6 | – | – | 19 |
+| Carts | 8 | 8 | 6 | – | – | 22 |
+| Platform (HTTP layer) | 1 | 5 | – | – | 1 | 7 |
+| Contract | – | – | – | 14 | – | 14 |
+| Data quality and Swagger drift | – | 9 | 1 | 4 | – | 14 |
+| End-to-end journeys | 3 | – | – | – | – | 3 |
+| **Total** | **31** | **45** | **22** | **18** | **11** | **127** |
 
-**In scope**
+**Key findings so far** (details in [section 9](#9-findings)):
 
-| Area | Endpoints |
+| Severity | Finding |
 |---|---|
-| Authentication | `POST /login` |
-| Users | `GET/POST /usuarios`, `GET/PUT/DELETE /usuarios/{_id}` |
-| Products | `GET/POST /produtos`, `GET/PUT/DELETE /produtos/{_id}` (admin only for writes) |
-| Carts | `GET/POST /carrinhos`, `GET /carrinhos/{_id}`, `DELETE /carrinhos/concluir-compra`, `DELETE /carrinhos/cancelar-compra` |
-| Cross-cutting | Role-based access (admin vs customer), token expiry, response contract, security observations |
+| 🔴 Critical | **Overselling:** a cart with the same product in non-adjacent positions bypasses the duplicate check. A cart holding 8 units was accepted for a product with 5 in stock, and stock dropped by only 4. |
+| 🔴 Critical | **Password search:** `GET /usuarios?password=abc` returns every user whose password contains "abc" (case-insensitive), without authentication. |
+| 🟠 High | Passwords returned in plain text by `GET /usuarios`, and embedded in the JWT payload |
+| 🟠 High | Anyone can register as admin, and update or delete any user, without a token |
+| 🟡 Medium | Blank names (`"   "`) accepted, case-sensitive uniqueness for emails and product names, numeric strings accepted as numbers |
+| 🟡 Medium | Swagger out of sync with the API in 4 places (field names, undocumented field, filter limits, status codes) |
 
-**Out of scope**
+---
 
-- The ServeRest web front end (`front.serverest.dev`, in beta). This project is API only.
-- Performance and load testing. ServeRest has its own load-testing guidance.
-- Penetration testing. Security findings are limited to what is observable through normal API use.
-- The public instance at `serverest.dev`, except for reading the Swagger
+## 1. Objective and scope
 
-## 3. Test approach
+Verify the ServeRest REST API against its documented contract and its business rules, and find
+defects that matter in a real store: wrong stock, wrong totals, data exposure, and broken access
+control. The suite must run unattended in CI against a disposable local instance.
 
-- **Layered design.** Test suites contain only readable business steps. Endpoint paths, payload
-  shapes, and RequestsLibrary calls live in the API keyword layer. See `docs/architecture.md` (Phase 2).
-- **Verify state, not only status codes.** A `201` is followed by a `GET` that proves the record
-  exists with the sent values. Cart actions are verified by reading product stock before and after.
-- **Every test owns its data.** No test relies on ServeRest's seed records (`fulano@qa.com` and the
-  two default products) or on data left by another test. See section 6.
-- **Expected results come from reasonable API rules, not from current behavior.** Where ServeRest
-  behaves in a way that would be a defect in a production API (for example, returning passwords), the
-  test asserts the correct rule and gets the `known-defect` tag. It stays visible in reports
-  without blocking the pipeline (`--skiponfailure known-defect`).
-- **Error messages are asserted exactly.** ServeRest returns field-level messages in Portuguese
-  (for example `"email deve ser um email válido"`). They are part of the contract and are kept in
-  one data file, not hard-coded across tests.
+**In scope:** all routes under `/login`, `/usuarios`, `/produtos`, `/carrinhos`, and the cross-cutting
+behavior of the HTTP layer (routing, error handling, security headers, `/version`).
 
-## 4. Test environments
+**Out of scope:**
 
-| Environment | URL | Use | Data reset |
-|---|---|---|---|
-| `dev` | `http://localhost:3000` (Docker or `npx serverest@3.2.2`) | Local development | Restart the container |
-| `ci` | `http://localhost:3000` (Docker service in GitHub Actions) | Pull requests and nightly runs | New container per job |
-| `ci` short token | `http://localhost:3001` (`--timeout 5`) | Token-expiry test only (AUTH-04) | New container per job |
-| `public` | `https://serverest.dev` | Reading the Swagger only | Not ours to reset |
+- The web front end (`front.serverest.dev`). This project is API only.
+- Load and performance testing. ServeRest has its own guidance, and its public instance blocks load tests.
+- Concurrency and race conditions (two customers buying the last unit at the same time). Worth
+  testing, but it needs a different tool than functional API tests.
+- The Swagger UI pages themselves (`/`, `/swagger-sw.js`, static assets)
+- The public instance at `serverest.dev`. It's shared by everyone who studies with it.
 
-Tests never run against `serverest.dev`. Its database is shared by everyone who studies with it, so
-results would be unreliable and our test data would pollute other people's work.
+## 2. Test basis
 
-## 5. Tags
+Expected results come from three sources, in this order of authority:
 
-| Tag | Meaning |
+1. **Reasonable rules for a production store API** (for example "never return passwords"). Where
+   ServeRest breaks one, the test asserts the correct rule and gets the `known-defect` tag.
+2. **The Swagger** served by the instance (`GET /swagger.json`). Differences are contract findings.
+3. **The ServeRest source code at tag 3.2.2** (validation schemas, controllers, middlewares), read
+   to find undocumented rules and likely defects. Every rule taken from the code was then
+   **confirmed by calling the running API** before it became a test case.
+
+## 3. Test design techniques
+
+| Technique | Where it's used |
 |---|---|
-| `smoke` | Fast, critical-path checks. Runs on every PR (target under 1 minute). |
-| `regression` | Full suite. Runs nightly and on demand. |
-| `auth` / `users` / `products` / `carts` | Functional area |
-| `negative` | Invalid input or error path |
-| `e2e` | Multi-endpoint purchase journey |
-| `security` | Access control and data-exposure checks |
-| `contract` | Response shape matches the documented schema |
-| `known-defect` | Asserts a correct rule that ServeRest currently violates. Doesn't block the pipeline. |
-| `AUTH-01`, `CRT-03`, … | Test case ID, for traceability from report to plan |
+| **Equivalence partitioning** | Valid vs invalid emails, roles, IDs, and numeric fields |
+| **Boundary value analysis** | `preco` 0 / 1 / 2⁵³−1 / 2⁵³+1, `quantidade` −1 / 0, cart quantity = stock / stock + 1, ID length 15 / 16 / 17 |
+| **Decision table** | The access matrix in section 4: persona × route → status |
+| **State transition** | Cart lifecycle and stock (section 5). Token lifecycle: valid → expired / password changed / user deleted / role changed |
+| **Error guessing (source-assisted)** | Duplicate products out of order, blank names, regex search on sensitive fields, upsert IDs |
+| **Contract testing** | Strict JSON Schemas for every response shape, plus a check of the Swagger against real behavior |
 
-Run examples: `robot --include smoke tests/`, `robot --include cartsANDnegative tests/`.
+## 4. Access control matrix
+
+Expected status for each persona. **Admin** = `administrador: "true"`, **Customer** = `"false"`,
+**Anonymous** = no token. Covered by TOK-11, PRD-07, PRD-08, CRT-14, SEC-03, and SEC-07.
+
+| Route | Anonymous | Customer | Admin |
+|---|:-:|:-:|:-:|
+| `POST /login`, `GET` on any resource | ✅ 200 | ✅ 200 | ✅ 200 |
+| `POST /usuarios` | ✅ 201 | ✅ 201 | ✅ 201 |
+| `PUT` / `DELETE /usuarios/{id}` | ⚠️ 200 (should be 401, SEC-03) | ⚠️ 200 on *any* user | ✅ 200 |
+| `POST` / `PUT` / `DELETE /produtos` | 401 | 403 | ✅ 201/200 |
+| `POST /carrinhos`, `DELETE /carrinhos/*` | 401 | ✅ 201/200 | ✅ 201/200 |
+
+## 5. Cart lifecycle and stock
+
+```mermaid
+stateDiagram-v2
+    [*] --> NoCart
+    NoCart --> ActiveCart: POST /carrinhos (stock − qty)
+    ActiveCart --> ActiveCart: POST /carrinhos → 400 (one cart per user)
+    ActiveCart --> NoCart: DELETE concluir-compra (stock stays reduced)
+    ActiveCart --> NoCart: DELETE cancelar-compra (stock + qty)
+    NoCart --> NoCart: DELETE concluir/cancelar → 200 "no cart"
+```
+
+While a cart is active, its user can't be deleted, and none of its products can be deleted.
 
 ## 6. Test data strategy
 
-### 6.1 Principles
+- **Every test owns its data.** Users and products are generated per test with Faker and deleted
+  in teardown, in the order ServeRest allows: carts → products → users. A record is registered for
+  cleanup as soon as the API returns its `_id`, so a failing test never leaves data behind.
+- **Unique and parallel-safe.** Emails and product names include a run ID, the pabot worker ID, and
+  a counter, for example `qa.k7f2.w3.n001@example.com`. `example.com` is reserved for documentation
+  (RFC 2606), and ServeRest's validator accepts it, unlike `.test` domains.
+- **Reproducible.** Generated content is seeded. The seed is logged, and `--variable DATA_SEED:<n>`
+  replays it.
+- **Static where meaning matters.** Invalid inputs and their expected messages live in versioned
+  YAML files that drive data-driven tests. Expected messages are kept verbatim in Portuguese, the
+  language the API returns.
+- **Never ServeRest's seed records.** The database starts with `fulano@qa.com`, 2 products, and 1
+  cart. Tests don't read, change, or count them.
+- **Secrets stay out of reports.** Passwords and tokens are masked in `log.html`.
 
-1. **Synthetic only.** Nothing comes from real people or any employer.
-2. **Generated at runtime.** Unique values (emails, product names) are created per test, so reruns
-   and parallel workers never collide.
-3. **Isolated.** Every test that changes state creates its own users and products.
-4. **Cleaned up.** Unlike many demo apps, ServeRest supports deletion, so each test removes what it
-   created (section 6.5).
-5. **Reproducible.** The generator is seeded. The seed is logged in the report, and you can replay a
-   run's data with `--variable DATA_SEED:<seed>`.
-6. **Static where meaning matters.** Boundary and invalid values are fixed, named data sets in
-   YAML, not random values.
+## 7. Environments and criteria
 
-### 6.2 Facts about ServeRest that shape the strategy
+| Environment | URL | Use |
+|---|---|---|
+| Local / CI | `http://localhost:3000` (Docker) | All tests |
+| Short-token instance | `http://localhost:3001` (`--timeout 5`) | Token expiry only (TOK-06) |
 
-Verified by running ServeRest 3.2.2 locally on 2026-10-10. Several of these are **not** in the Swagger.
+**Entry criteria:** `GET /version` returns `3.2.2`, and the container image digest matches
+`docker-compose.yml`.
 
-| Fact | Consequence for test data |
+**Exit criteria:**
+
+- PR gate: 100 % of `smoke` tests pass.
+- Nightly: 100 % of Critical and High tests pass, apart from tests tagged `known-defect`.
+- No data is left behind: only ServeRest's seed records remain after a full run.
+- Reports (`report.html`, `log.html`) are published as CI artifacts.
+
+---
+
+## 8. Test cases
+
+**Type:** P = positive · N = negative · E = edge/boundary · C = contract · S = security.
+**Status:** ✅ automated · ⬜ planned. Data-driven cases (🔁) run once per row of their data set.
+
+### 8.1 Authentication and tokens
+
+| ID | Scenario | Expected result | Type | Priority | Status |
+|---|---|---|:-:|:-:|:-:|
+| AUTH-01 | Registered user logs in | 200, message, `authorization` = `Bearer <JWT>` | P | Critical | ✅ |
+| AUTH-02 | Admin logs in and uses the token on an admin route | 200, then `POST /produtos` → 201 | P | High | ⬜ |
+| AUTH-03 | Customer's token works on a protected route | `DELETE /carrinhos/cancelar-compra` → 200 | P | High | ⬜ |
+| AUTH-04 | Login accepts a form-urlencoded body | 200 and a token (undocumented but supported) | P | Low | ⬜ |
+| AUTH-05 | Wrong password | 401 `Email e/ou senha inválidos` | N | Critical | ⬜ |
+| AUTH-06 | Unknown email | 401 with the **same** message as AUTH-05, so accounts can't be enumerated | S | High | ⬜ |
+| AUTH-07 | 🔁 Invalid login body: missing email, missing password, blank email, blank password, invalid email format, non-string password, unknown field | 400 with one message per invalid field | N | High | ⬜ |
+| AUTH-08 | Email in different case (`USER@...`) | 401: matching is exact (see DQ-01) | E | Low | ⬜ |
+| TOK-01 | No `Authorization` header on a protected route | 401 `Token de acesso ausente...` | N | Critical | ⬜ |
+| TOK-02 | 🔁 Malformed header: `Bearer` alone, `bearer <jwt>`, `<jwt>` without prefix, `Bearer abc`, `Basic dXNlcg==` | 401 | N | High | ⬜ |
+| TOK-03 | JWT signed with a different key | 401 | S | High | ⬜ |
+| TOK-04 | JWT with `alg: none` | 401 | S | High | ⬜ |
+| TOK-05 | JWT payload changed, original signature kept | 401 | S | High | ⬜ |
+| TOK-06 | Token after it expires (5 s instance) | Valid at 0 s, 401 at 6 s | N | High | ⬜ |
+| TOK-07 | Token of a user who was deleted | 401 | N | Medium | ⬜ |
+| TOK-08 | Token after the user's password changed | 401 | N | Medium | ⬜ |
+| TOK-09 | Admin demoted to customer: existing token on an admin route | 403 immediately (role is checked on every request) | N | High | ⬜ |
+| TOK-10 | User's name changed: existing token | Still valid (only email + password are bound to the token) | E | Low | ⬜ |
+| TOK-11 | Customer token on an admin route | 403 `Rota exclusiva para administradores` | N | Critical | ⬜ |
+| SEC-02 | JWT payload must not contain the password | Fails today: payload has `email` **and** `password` | S | High | ⬜ `known-defect` |
+| SEC-08 | Security headers on every response | `X-Frame-Options`, `X-Content-Type-Options: nosniff`, `Strict-Transport-Security` present; `X-Powered-By` absent | S | Medium | ⬜ |
+
+### 8.2 Users
+
+| ID | Scenario | Expected result | Type | Priority | Status |
+|---|---|---|:-:|:-:|:-:|
+| USR-01 | Create a customer, then an admin; read each back by ID | 201, then GET returns exactly the sent data | P | Critical | ✅ |
+| USR-02 | List users | `quantidade` equals the length of `usuarios` | P | Medium | ⬜ |
+| USR-03 | Filter by `email` | Only that user | P | Medium | ⬜ |
+| USR-04 | Filter by `nome` with part of the name, in another case | Matches (partial, case-insensitive) | P | Low | ⬜ |
+| USR-05 | Filter by `administrador` | Only users with that role | P | Low | ⬜ |
+| USR-06 | Combine filters (`nome` + `administrador`) | Only users matching both | P | Low | ⬜ |
+| USR-07 | Update a user with PUT | 200 `Registro alterado com sucesso`; GET shows the new values | P | High | ⬜ |
+| USR-08 | PUT keeping the user's own email | 200, not a false "email in use" | P | Medium | ⬜ |
+| USR-09 | Delete a user without a cart | 200, then GET → 400 `Usuário não encontrado` | P | High | ⬜ |
+| USR-10 | Create with an email already in use | 400 `Este email já está sendo usado`; no record created | N | Critical | ⬜ |
+| USR-11 | PUT to another user's email | 400 `Este email já está sendo usado` | N | High | ⬜ |
+| USR-12 | 🔁 Invalid body: each field missing, each field blank, 4 invalid email formats, `administrador` = `"TRUE"` / `"yes"` / `true` (boolean), `nome` as a number, unknown field | 400 with the exact message for each field; no record created | N | High | ⬜ |
+| USR-13 | GET by a well-formed ID that doesn't exist | 400 `Usuário não encontrado` | N | Medium | ⬜ |
+| USR-14 | 🔁 GET by a malformed ID: 15 chars, 17 chars, special characters | 400 `id deve ter exatamente 16 caracteres alfanuméricos` | N | Medium | ⬜ |
+| USR-15 | Delete a user who has a cart | 400 with `idCarrinho`; user still exists | N | High | ⬜ |
+| USR-16 | 🔁 Invalid filters: `email=bad`, `administrador=TRUE`, unknown parameter | 400 with field message | N | Low | ⬜ |
+| USR-17 | Delete an ID that doesn't exist | 200 `Nenhum registro excluído` (idempotent) | E | Low | ⬜ |
+| USR-18 | PUT on an unknown ID | 201: creates a user, but with a **new** server-generated ID, not the one in the URL | E | Medium | ⬜ |
+| USR-19 | Names with accents, apostrophes, and emoji (`João D'Ávila 😀`) | Stored and returned exactly | E | Medium | ⬜ |
+| USR-20 | 300-character name | Accepted (no length limit) | E | Low | ⬜ |
+| USR-21 | Email with plus-addressing and subdomain (`qa+tag@sub.example.com`) | Accepted | E | Low | ⬜ |
+| USR-22 | Empty filter value (`?nome=`) | Ignored: returns the full list | E | Low | ⬜ |
+| USR-23 | Body larger than 100 KB | 413 `Payload too large` | E | Low | ⬜ |
+| SEC-01 | User listing must not expose passwords | Fails today: `password` in plain text | S | High | ⬜ `known-defect` |
+| SEC-03 | PUT and DELETE on users must require a token | Fails today: both work anonymously, on any user | S | High | ⬜ `known-defect` |
+| SEC-04 | Users must not be searchable by password | Fails today: `?password=` does a case-insensitive partial match | S | Critical | ⬜ `known-defect` |
+| SEC-07 | Self-registration must not grant admin | Fails today: anyone can create an admin account | S | High | ⬜ `known-defect` |
+
+### 8.3 Products
+
+| ID | Scenario | Expected result | Type | Priority | Status |
+|---|---|---|:-:|:-:|:-:|
+| PRD-01 | Admin creates a product; read it back by ID | 201, then GET returns exactly the sent data | P | Critical | ✅ |
+| PRD-02 | List products | `quantidade` equals the length of `produtos` | P | Medium | ⬜ |
+| PRD-03 | 🔁 Filters: `nome` (partial, case-insensitive), `descricao` (partial), `preco` (exact), `quantidade` (exact) | Only matching products | P | Low | ⬜ |
+| PRD-04 | Update a product with PUT | 200; GET shows the new values | P | High | ⬜ |
+| PRD-05 | Delete a product that isn't in a cart | 200, then GET → 400 `Produto não encontrado` | P | High | ⬜ |
+| PRD-06 | Optional `imagem` field | Stored (trimmed) and returned. Not in the Swagger (DRIFT-02) | P | Low | ⬜ |
+| PRD-07 | 🔁 Customer calls POST, PUT, DELETE | 403 `Rota exclusiva para administradores`; nothing changes | N | Critical | ⬜ |
+| PRD-08 | 🔁 Anonymous calls POST, PUT, DELETE | 401; nothing changes | N | Critical | ⬜ |
+| PRD-09 | Duplicate name, on create and on PUT rename | 400 `Já existe produto com esse nome` | N | High | ⬜ |
+| PRD-10 | 🔁 Invalid body: each field missing, blank `nome`/`descricao`, `preco` 0 / −1 / 1.5 / `"abc"`, `quantidade` −1 / 1.5, unknown field | 400 with the exact message per field | N | High | ⬜ |
+| PRD-11 | Delete a product that is in a cart | 400 with `idCarrinhos`; product still exists | N | High | ⬜ |
+| PRD-12 | GET by an unknown ID and by a malformed ID | 400 not found / 400 ID rule | N | Medium | ⬜ |
+| PRD-13 | 🔁 Invalid filters: `preco=abc`, `preco=0`, `quantidade=-1`, unknown parameter | 400 with field message | N | Low | ⬜ |
+| PRD-14 | 🔁 Boundaries: `preco` 1 ✔, 9007199254740991 ✔, 9007199254740993 ✘; `quantidade` 0 ✔ | Accepted / rejected with `preco não pode ser maior que 9007199254740991` | E | Medium | ⬜ |
+| PRD-15 | Name with surrounding spaces | Stored trimmed; `" X "` conflicts with `"X"` | E | Low | ⬜ |
+| PRD-16 | PUT keeping the product's own name | 200, not a false duplicate | E | Medium | ⬜ |
+| PRD-17 | PUT on an unknown ID | 201 with a **new** server-generated ID | E | Low | ⬜ |
+| PRD-18 | Delete an ID that doesn't exist | 200 `Nenhum registro excluído` | E | Low | ⬜ |
+| PRD-19 | Product with stock 0 | Created; can't be added to a cart (CRT-20) | E | Low | ⬜ |
+
+### 8.4 Carts
+
+| ID | Scenario | Expected result | Type | Priority | Status |
+|---|---|---|:-:|:-:|:-:|
+| CRT-01 | Create a cart with 2 products | 201; `precoTotal` = Σ price × qty; `quantidadeTotal` = Σ qty; each product's stock decreased | P | Critical | ⬜ |
+| CRT-02 | Read the cart by ID | Items with `precoUnitario`; `idUsuario` = the token's owner | P | High | ⬜ |
+| CRT-03 | List carts filtered by `idUsuario` | Only that user's cart | P | Low | ⬜ |
+| CRT-04 | Conclude the purchase | 200; cart gone; stock **stays** reduced | P | Critical | ⬜ |
+| CRT-05 | Cancel the purchase | 200 `...Estoque dos produtos reabastecido`; cart gone; stock restored exactly | P | Critical | ⬜ |
+| CRT-06 | New cart after concluding a purchase | 201 (the one-cart rule only covers active carts) | P | Medium | ⬜ |
+| CRT-07 | Admin creates a cart | 201 (any authenticated user can buy) | P | Low | ⬜ |
+| CRT-08 | Buy exactly the remaining stock | 201; stock becomes 0 | P | High | ⬜ |
+| CRT-09 | Second cart for the same user | 400 `Não é permitido ter mais de 1 carrinho` | N | High | ⬜ |
+| CRT-10 | 🔁 Invalid body: empty list, `produtos` not an array, item missing fields, quantity 0 / −1 / 1.5, unknown item field | 400 with the exact message; stock unchanged | N | High | ⬜ |
+| CRT-11 | One valid and one unknown product | 400 `Produto não encontrado` with `item.index`; the valid product's stock is unchanged | N | High | ⬜ |
+| CRT-12 | Quantity above stock | 400 with `quantidadeEstoque`; nothing reserved | N | Critical | ⬜ |
+| CRT-13 | Same product twice, next to each other | 400 `Não é permitido possuir produto duplicado` with `idProdutosDuplicados` | N | High | ⬜ |
+| CRT-14 | 🔁 Anonymous: create, conclude, cancel | 401 | N | High | ⬜ |
+| CRT-15 | GET by an unknown ID and by a malformed ID | 400 not found / 400 ID rule | N | Medium | ⬜ |
+| CRT-16 | 🔁 Invalid filters: `precoTotal=0`, `quantidadeTotal=-1`, `precoTotal=abc` | 400 with field message | N | Low | ⬜ |
+| CRT-17 | Conclude or cancel without a cart | 200 `Não foi encontrado carrinho para esse usuário` | E | Low | ⬜ |
+| CRT-18 | Product price changes after the cart was created | Cart keeps the price from creation time | E | High | ⬜ |
+| CRT-19 | Product stock edited while in a cart, then the cart is cancelled | Cancelled quantity is added to the *current* stock (edited to 50, cancel 2 → 52) | E | Medium | ⬜ |
+| CRT-20 | Product with stock 0 | 400 `Produto não possui quantidade suficiente` | E | Medium | ⬜ |
+| CRT-21 | Cart with 10 different products | Totals correct for all 10 | E | Medium | ⬜ |
+| CRT-22 | Quantity equal to stock + 1 | 400 (boundary next to CRT-08) | E | High | ⬜ |
+
+### 8.5 Platform (HTTP layer)
+
+| ID | Scenario | Expected result | Type | Priority | Status |
+|---|---|---|:-:|:-:|:-:|
+| PLT-01 | `GET /version` | 200 `{"version": "3.2.2"}`. Also the entry criterion. | P | High | ⬜ |
+| PLT-02 | Unknown route (`GET /pedidos`) | 405 with a message naming the method and path | N | Low | ⬜ |
+| PLT-03 | Unsupported method (`PATCH /usuarios`) | 405 | N | Low | ⬜ |
+| PLT-04 | 🔁 Malformed JSON on each write route | 400 `Adicione aspas em todos os valores...` | N | Medium | ⬜ |
+| PLT-05 | Invalid percent-encoding in the URL | 400 `Parâmetro de URL inválido...` | N | Low | ⬜ |
+| PLT-06 | Body larger than 100 KB | 413 | N | Low | ⬜ |
+| PLT-07 | CORS | `Access-Control-Allow-Origin: *` on responses | S | Low | ⬜ |
+
+### 8.6 Contract
+
+Every response shape has a strict JSON Schema (required fields, types, no unexpected fields, `_id`
+matches `^[a-zA-Z0-9]{16}$`). Contract tests call each route and validate the response against it.
+
+| ID | Route | Responses validated | Type | Priority | Status |
+|---|---|---|:-:|:-:|:-:|
+| CON-01 | `POST /login` | 200, 400, 401 | C | High | ⬜ |
+| CON-02 | `GET /usuarios` | 200 list, 400 | C | High | ⬜ |
+| CON-03 | `GET /usuarios/{id}` | 200, 400 | C | High | ⬜ |
+| CON-04 | `POST`, `PUT`, `DELETE /usuarios` | 201, 200, 400 | C | High | ⬜ |
+| CON-05 | `GET /produtos` | 200 list, 400 | C | High | ⬜ |
+| CON-06 | `GET /produtos/{id}` | 200, 400 | C | High | ⬜ |
+| CON-07 | `POST`, `PUT`, `DELETE /produtos` | 201, 200, 400, 401, 403 | C | High | ⬜ |
+| CON-08 | `GET /carrinhos` | 200 list, 400 | C | High | ⬜ |
+| CON-09 | `GET /carrinhos/{id}` | 200, 400 | C | High | ⬜ |
+| CON-10 | `POST /carrinhos` | 201; 400 variants (`item` + `index`, `idProdutosDuplicados`) | C | High | ⬜ |
+| CON-11 | `DELETE /carrinhos/*` | 200, 401 | C | Medium | ⬜ |
+| CON-12 | Any validation error | Body is an object of `field → message` | C | Medium | ⬜ |
+| CON-13 | Every response | `Content-Type: application/json; charset=utf-8` | C | Low | ⬜ |
+| CON-14 | `GET /version`, 405 and 413 responses | Shape is stable | C | Low | ⬜ |
+
+### 8.7 Data quality and Swagger drift
+
+These assert the correct behavior. All of them fail on 3.2.2 and carry `known-defect`, so they
+show up in reports without blocking the pipeline.
+
+| ID | Expected rule | Observed on 3.2.2 | Type | Priority | Status |
+|---|---|---|:-:|:-:|:-:|
+| DQ-01 | Email uniqueness ignores case | `ADM@x.com` and `adm@x.com` are separate accounts | N | Medium | ⬜ |
+| DQ-02 | Product name uniqueness ignores case | `Mouse X` and `MOUSE X` both accepted | N | Medium | ⬜ |
+| DQ-03 | `preco` must be a JSON number | `"10"` and `"1e2"` accepted and converted | N | Low | ⬜ |
+| DQ-04 | User `nome` can't be blank | `"   "` accepted | N | Medium | ⬜ |
+| DQ-05 | Product `nome` can't be blank | `"   "` accepted and stored as `""` | N | Medium | ⬜ |
+| DQ-06 | Cart `quantidade` must be a JSON number | `"2"` accepted | N | Low | ⬜ |
+| DQ-07 | **A cart can't contain the same product twice** | `[A, B, A]` accepted: the cart holds 8 units of A (stock 5), and stock drops by only 4 | N | **Critical** | ⬜ |
+| DQ-08 | **Stock never goes below what's actually sold** | Consequence of DQ-07: concluding that cart sells 8 units while stock shows 1 | N | **Critical** | ⬜ |
+| DQ-09 | ID validation is consistent across verbs | GET rejects malformed IDs; PUT and DELETE on `/usuarios` accept them, and PUT creates a user | N | Low | ⬜ |
+| DQ-10 | PUT on an unknown ID either updates that ID or returns 404 | Creates a record with a *different* ID (USR-18, PRD-17) | E | Low | ⬜ |
+| DRIFT-01 | Swagger field name matches the API | Delete product in cart: Swagger says `idCarrinho`, API returns `idCarrinhos` | C | Medium | ⬜ |
+| DRIFT-02 | Every accepted field is documented | Products accept and return `imagem`, which the Swagger doesn't list | C | Low | ⬜ |
+| DRIFT-03 | Documented filter limits match the API | Swagger: `quantidadeTotal ≥ 0`. API: rejects 0 | C | Low | ⬜ |
+| DRIFT-04 | Every returned status code is documented | 405, 413, and malformed-JSON 400 aren't in the Swagger | C | Low | ⬜ |
+
+### 8.8 End-to-end journeys
+
+| ID | Journey | Type | Priority | Status |
+|---|---|:-:|:-:|:-:|
+| E2E-01 | Admin creates 2 products → customer registers and logs in → creates a cart → totals and stock checked → concludes → stock final, cart gone | P | Critical | ⬜ |
+| E2E-02 | Same journey, but the customer cancels → stock fully restored → the customer can now be deleted | P | High | ⬜ |
+| E2E-03 | Admin can't delete a product while it's in a cart → customer concludes → admin deletes it successfully | P | High | ⬜ |
+
+---
+
+## 9. Findings
+
+Defects are reported with evidence in the test log. The two critical ones, with steps to reproduce:
+
+**DQ-07 / DQ-08: overselling through non-adjacent duplicates**
+
+1. Admin creates product A with `quantidade: 5`, and product B.
+2. Customer `POST /carrinhos` with `[{A, 4}, {B, 1}, {A, 4}]`.
+3. **Expected:** 400 `Não é permitido possuir produto duplicado`.
+   **Actual:** 201. The cart holds 8 units of A, `precoTotal` counts all 8, and A's stock is 1.
+
+Root cause, from the source: the duplicate check sorts an array of objects, which doesn't
+reorder them, and then only compares neighbors. The stock update reads all quantities from one
+snapshot, so the second line for A overwrites the first instead of adding to it.
+
+**SEC-04: user search by password**
+
+1. `GET /usuarios?password=pw1`, with no token.
+2. **Expected:** 400 (`password` isn't a valid filter), or the filter is ignored.
+   **Actual:** 200 with every user whose password *contains* `pw1`, in any case. Combined with
+   SEC-01, this returns the full password.
+
+## 10. Risks
+
+| Risk | Mitigation |
 |---|---|
-| The database starts with seed data: 1 admin user (`fulano@qa.com`), 2 products, 1 cart. | Tests never use or assert on seed records. Filters and counts are always scoped to the test's own data. |
-| Email must be unique, product name must be unique. Both checks are **case-sensitive**. | Generated emails and product names include a unique suffix. |
-| Email validation only accepts real top-level domains: `@example.test` and `@test.invalid` are rejected, `@example.com` is accepted. | Generated emails use `example.com`, which is reserved for examples and never belongs to a real person. |
-| `administrador` must be the **string** `"true"` or `"false"`. A JSON boolean is rejected. | Builders emit strings. Booleans are a negative case. |
-| `preco` must be a positive integer. `quantidade` must be an integer ≥ 0. Unknown fields are rejected. | Generated prices are integers ≥ 1. Stock is chosen per test. |
-| Each user can have **only one cart**. A cart decreases product stock immediately. | Each cart test needs its own customer **and** its own products with known stock. |
-| You can't delete a user who has a cart, or a product that's in a cart. | Cleanup must cancel carts first, then delete products and users. |
-| `concluir-compra` keeps stock reduced. `cancelar-compra` restores it. | Stock checks before and after are deterministic only on test-owned products. |
-| Tokens last 600 s by default (`--timeout` changes this). A deleted user's token stops working. | Tokens are cached per user per suite. Expiry is tested on a separate 5 s instance. |
-| IDs are exactly 16 alphanumeric characters. Any other length returns a validation error, not "not found". | Two negative ID sets: well-formed but non-existent, and malformed. |
-| `PUT` on a non-existent ID **creates** a record (upsert). | Update tests use IDs they created. Upsert has its own test. |
-
-### 6.3 Personas
-
-| Persona | `administrador` | Used for |
-|---|---|---|
-| **Admin** | `"true"` | Creating, updating, and deleting products |
-| **Customer** | `"false"` | Carts. Also proves that product writes are forbidden (`403`). |
-| **Anonymous** | No token | Proves that protected routes return `401` |
-| **Ghost** | Token of a user deleted afterwards | Proves that tokens are invalidated (`401`) |
-
-### 6.4 Data scopes
-
-| Scope | Created by | Example | Rule |
-|---|---|---|---|
-| **Suite (read-only)** | Suite setup | Admin user and token for a products suite | Tests may use it but never change it |
-| **Test (mutable)** | Test setup | Customer + 2 products with stock 10 for a cart test | Never shared. Deleted in teardown. |
-| **Static** | Committed YAML in `data/` | Invalid payloads with their expected messages | Versioned and reviewed like code |
-
-### 6.5 Cleanup
-
-- Every create request is registered (type and `_id`) as soon as the response arrives, before any
-  assertion. A test that fails halfway, or a negative test that unexpectedly creates a record, still
-  leaves nothing behind. Verified with a test that fails on purpose after creating 3 records.
-- Test teardown cleans up in dependency order: **cancel carts → delete products → delete users**.
-- Cleanup is best-effort. A cleanup failure is logged as a warning and never hides the test's real
-  result.
-- The disposable container is the safety net. CI starts a fresh one for every job.
-
-### 6.6 Generation rules
-
-| Field | Rule | Example |
-|---|---|---|
-| `email` | `qa.` + run ID + worker ID + random suffix, on the reserved `example.com` domain (RFC 2606) | `qa.k7f2.w3.x9p4@example.com` |
-| `nome` (user) | Faker `pt_BR` name. Includes accents and apostrophes on purpose. | `João D'Ávila` |
-| `password` | Random and strong. Never logged in plain text. | — |
-| `nome` (product) | Faker product-style words + unique suffix | `Ergonomic Mouse k7f2x9` |
-| `preco` | Integer, 1–5000, chosen so cart totals are easy to verify | `120` |
-| `quantidade` | Explicit per test (default 10), so stock arithmetic is visible in the test | `10` |
-
-Data is built with **builder keywords that use defaults and allow overrides**, so a test states only
-what it cares about:
-
-```robotframework
-${user}=       Generate User                              # customer, all defaults
-${admin}=      Generate User    administrador=true
-${product}=    Generate Product    preco=100    quantidade=5
-```
-
-### 6.7 Traceability and privacy in reports
-
-- Each test logs the IDs it created, so you can investigate a failure directly through the API.
-- Passwords and the `Authorization` header are masked in `log.html`.
-- Generated data files go in `data/generated/`, which is gitignored.
-
-## 7. Test cases
-
-### Authentication
-
-| ID | Scenario | Priority | Tags |
-|---|---|---|---|
-| AUTH-01 | Valid login returns `200` and a `Bearer` token | High | `auth` `smoke` |
-| AUTH-02 | Wrong password or unknown email returns `401` with `"Email e/ou senha inválidos"` | High | `auth` `negative` |
-| AUTH-03 | Missing or blank email/password returns `400` with field messages (data-driven) | Medium | `auth` `negative` |
-| AUTH-04 | Expired token returns `401` (short-token instance) | Medium | `auth` `negative` |
-| AUTH-05 | Missing, malformed, unprefixed, or deleted-user token returns `401` on a protected route (data-driven) | High | `auth` `negative` `security` |
-
-### Users
-
-| ID | Scenario | Priority | Tags |
-|---|---|---|---|
-| USR-01 | Create a customer and an admin, then `GET` by ID returns the sent data | High | `users` `smoke` |
-| USR-02 | Duplicate email returns `400` | High | `users` `negative` |
-| USR-03 | Field validation: missing, blank, invalid email, non-string `administrador`, unknown field (data-driven) | Medium | `users` `negative` |
-| USR-04 | List with filters (`email`, `nome`, `administrador`) returns only matching users | Medium | `users` |
-| USR-05 | `PUT` updates an existing user. `PUT` on an unknown ID creates one (documented upsert). | Medium | `users` |
-| USR-06 | Delete a user without a cart returns `200`. Deleting a user with a cart returns `400` with the cart ID. | High | `users` `negative` |
-| USR-07 | Non-existent ID returns `"Usuário não encontrado"`. Malformed ID returns the 16-character rule. | Medium | `users` `negative` |
-
-### Products
-
-| ID | Scenario | Priority | Tags |
-|---|---|---|---|
-| PRD-01 | Admin creates a product, then `GET` by ID returns the sent data | High | `products` `smoke` |
-| PRD-02 | Customer gets `403`, anonymous gets `401` on create, update, and delete | High | `products` `negative` `security` |
-| PRD-03 | Duplicate product name returns `400` | Medium | `products` `negative` |
-| PRD-04 | Field validation: `preco` 0, negative, decimal; `quantidade` negative; missing fields (data-driven). `quantidade` 0 is accepted. | Medium | `products` `negative` |
-| PRD-05 | Update and delete a product. Deleting a product that is in a cart returns `400`. | High | `products` `negative` |
-| PRD-06 | List with filters (`nome`, `preco`, `quantidade`) returns only matching products | Low | `products` |
-
-### Carts
-
-| ID | Scenario | Priority | Tags |
-|---|---|---|---|
-| CRT-01 | Create a cart: `201`, correct `precoTotal` and `quantidadeTotal`, product stock decreased | High | `carts` `smoke` |
-| CRT-02 | A second cart for the same user returns `400` | High | `carts` `negative` |
-| CRT-03 | Invalid cart: duplicate product, unknown product, quantity above stock, quantity 0, empty list (data-driven). Stock unchanged. | High | `carts` `negative` |
-| CRT-04 | Conclude purchase: cart removed, stock stays reduced | High | `carts` |
-| CRT-05 | Cancel purchase: cart removed, stock restored to the original value | High | `carts` |
-| CRT-06 | Conclude or cancel without a cart returns `200` with `"Não foi encontrado carrinho para esse usuário"` | Low | `carts` `negative` |
-
-### End-to-end
-
-| ID | Scenario | Priority | Tags |
-|---|---|---|---|
-| E2E-01 | Admin creates products → customer registers and logs in → creates cart → totals and stock verified → concludes purchase → stock final | High | `e2e` `smoke` |
-| E2E-02 | Same journey, but the customer cancels. Stock fully restored and the user can then be deleted. | Medium | `e2e` |
-
-### Contract
-
-| ID | Scenario | Priority | Tags |
-|---|---|---|---|
-| CON-01 | Success and error responses match the Swagger schemas (required fields, types) | Medium | `contract` |
-
-### Security and data-quality observations
-
-These assert what a production API should do. Each was observed on 3.2.2 and is expected to fail
-today, so they carry `known-defect`.
-
-| ID | Expected rule | Observed on 3.2.2 | Tags |
-|---|---|---|---|
-| SEC-01 | `GET /usuarios` must not return passwords | Plain-text `password` in every user | `security` `known-defect` |
-| SEC-02 | The JWT payload must not contain the password | Payload includes `email` **and** `password` (base64, not encrypted) | `security` `known-defect` |
-| SEC-03 | Deleting or updating a user must require authentication | `DELETE` and `PUT /usuarios/{_id}` work with no token | `security` `known-defect` |
-| DQ-01 | Email uniqueness must be case-insensitive | `ADM@x` and `adm@x` are both accepted | `users` `known-defect` |
-| DQ-02 | Product name uniqueness must be case-insensitive | `Widget A` and `widget a` are both accepted | `products` `known-defect` |
-| DQ-03 | `preco` sent as a string must be rejected | `"10"` is accepted | `products` `known-defect` |
-| DQ-04 | Response body matches the documented field name | Product-in-cart error returns `idCarrinhos`, while the Swagger documents `idCarrinho` | `contract` `known-defect` |
-
-## 8. Entry criteria
-
-- The ServeRest container is healthy and its image digest matches `docker-compose.yml`
-- Dependencies installed from the pinned `requirements.txt`
-- The generator seed is logged at the start of the run
-- The test cases in this plan are reviewed and tagged
-
-## 9. Exit criteria
-
-- **PR gate:** 100 % of `smoke` tests pass
-- **Nightly:** 100 % of High-priority tests pass. Any other failure has a linked issue or the `known-defect` tag.
-- No flaky test stays in the gating set. A test that fails and then passes on rerun without a code
-  change is quarantined and investigated.
-- No test data is left behind after a full run, apart from ServeRest's own seed records (checked by
-  a final suite teardown)
-- `report.html` and `log.html` are published as CI artifacts
-
-## 10. Risks and mitigations
-
-| Risk | Impact | Mitigation |
-|---|---|---|
-| The Swagger is incomplete (validation rules and some field names are undocumented) | Weak or wrong assertions | Rules confirmed by observation (section 6.2). Mismatches tracked as `contract` findings. |
-| A new ServeRest release changes messages or rules | Many tests fail at once | Pinned image version and digest. Messages centralized in one data file. Upgrades done in their own PR. |
-| Data collisions in parallel runs | Flaky failures | Unique emails and names with worker ID, per-test data, no shared mutable records |
-| Stock assertions affected by other tests | Wrong totals | Stock checked only on products created by the same test |
-| Token expiry during long runs (600 s) | Random `401`s | Tokens cached per suite and refreshed when close to expiry |
-| Cleanup fails and leaves data | Later collisions, failed "no leftovers" check | Ordered, best-effort teardown. Fresh container per CI job. |
-| amd64-only image on ARM machines | Slower local start | Runs under emulation. `npx serverest@3.2.2` documented as an alternative. |
-| Error messages are in Portuguese while the code is in English | Readability for non-Portuguese readers | Messages kept verbatim (they are the contract), with English names for the data-set keys |
-
-## 11. Open points
-
-- [x] Confirm the Docker health check works inside the image (image runs Node 22; healthy in ~7 s)
-- [x] Confirm the short-token instance expires tokens (valid at 0 s, `401` at 6 s)
-- [ ] Decide whether CON-01 uses a JSON-schema library or schemas derived from the Swagger
-- [ ] Measure how long a full run takes sequentially vs with pabot
+| A ServeRest upgrade changes rules or messages | Image pinned by version and digest. Messages kept in one file. Upgrades get their own PR. |
+| Swagger and API disagree | The test basis is explicit (section 2). Differences become DRIFT findings. |
+| Data collisions in parallel runs | Per-test data with unique, worker-tagged values |
+| Leftover data | Cleanup registered before any assertion. Exit criterion checks only seed data remains. |
+| Defects block CI | `known-defect` tag with `--skiponfailure`: visible in the report, not blocking |
+| Token expiry during long runs | Suites run in seconds. Expiry itself is tested on a separate 5 s instance. |

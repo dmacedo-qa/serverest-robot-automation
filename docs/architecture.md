@@ -33,7 +33,7 @@ flowchart TD
 ### Why endpoint keywords never assert
 
 The same call is used by positive and negative tests. `POST Product` must be able to return a
-`403` so that PRD-02 can check it. If the endpoint keyword checked for `201`, every negative test
+`403` so that PRD-07 can check it. If the endpoint keyword checked for `201`, every negative test
 would need a second copy of the call. So:
 
 - Endpoint keywords send the request with `expected_status=anything` and return the response.
@@ -151,7 +151,7 @@ config/ci.yaml    → GitHub Actions
 Precedence, highest first:
 
 1. Command line: `--variable BASE_URL:http://...`
-2. Environment variables or `.env` file
+2. Environment variables (for example `BASE_URL`, set by `docker-compose.yml` for the test container)
 3. `config/<ENV>.yaml`
 
 Run options that are the same for everyone (output folder, log level, tag statistics) live in
@@ -189,8 +189,7 @@ serverest-robot-automation/
 │   └── robot.args             # shared robot command-line options
 ├── data/
 │   ├── messages.yaml          # expected ServeRest messages (verbatim)
-│   ├── negative/              # invalid payload sets for data-driven tests
-│   └── generated/             # runtime output, gitignored
+│   └── negative/              # invalid payload sets for data-driven tests
 ├── docs/
 │   ├── test-plan.md
 │   └── architecture.md
@@ -208,7 +207,8 @@ serverest-robot-automation/
 │   ├── e2e/
 │   ├── security/              # SEC-* and DQ-* (known-defect)
 │   └── contract/
-├── docker-compose.yml
+├── Dockerfile                 # test-runner image
+├── docker-compose.yml         # ServeRest + test runner
 ├── requirements.txt
 ├── pyproject.toml             # Robocop lint and format settings
 └── robot.toml                 # lets the RobotCode IDE extension resolve libraries and config

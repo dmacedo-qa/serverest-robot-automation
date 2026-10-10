@@ -9,7 +9,7 @@ The environment comes from the ENV environment variable (default ``dev``) and se
 
 Precedence, highest first:
     1. ``--variable NAME:value`` on the command line (Robot applies it after this file)
-    2. Environment variables, including values from a local ``.env`` file
+    2. Environment variables, e.g. ``BASE_URL=http://serverest:3000``
     3. ``config/<ENV>.yaml``
 """
 
@@ -17,14 +17,12 @@ import os
 from pathlib import Path
 
 import yaml
-from dotenv import load_dotenv
 
 ROOT = Path(__file__).resolve().parent.parent
 CONFIG_DIR = ROOT / "config"
 
 
 def get_variables(env: str | None = None) -> dict:
-    load_dotenv(ROOT / ".env", override=False)
     env = env or os.getenv("ENV", "dev")
     config_file = CONFIG_DIR / f"{env}.yaml"
     if not config_file.is_file():
