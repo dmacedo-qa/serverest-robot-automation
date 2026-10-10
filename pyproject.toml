@@ -7,6 +7,7 @@ requires-python = ">=3.13"
 [tool.robocop.lint]
 configure = [
     "line-too-long.line_length=120",
+    "inconsistent-assignment.assignment_sign_type=equal_sign",
 ]
 
 [tool.robocop.format]

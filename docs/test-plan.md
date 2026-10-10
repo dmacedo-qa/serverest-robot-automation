@@ -130,7 +130,9 @@ Verified by running ServeRest 3.2.2 locally on 2026-10-10. Several of these are 
 
 ### 6.5 Cleanup
 
-- Every create keyword registers what it created (type and `_id`) in a per-test registry.
+- Every create request is registered (type and `_id`) as soon as the response arrives, before any
+  assertion. A test that fails halfway, or a negative test that unexpectedly creates a record, still
+  leaves nothing behind. Verified with a test that fails on purpose after creating 3 records.
 - Test teardown cleans up in dependency order: **cancel carts → delete products → delete users**.
 - Cleanup is best-effort. A cleanup failure is logged as a warning and never hides the test's real
   result.

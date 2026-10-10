@@ -42,6 +42,19 @@ pip install -r requirements.txt
 robot --argumentfile config/robot.args --include smoke tests/
 ```
 
+Results go to `results/` (`report.html`, `log.html`).
+
+### Running tests
+
+```bash
+robot --argumentfile config/robot.args tests/                        # everything
+robot --argumentfile config/robot.args --include smoke tests/        # smoke only
+robot --argumentfile config/robot.args --include productsANDnegative tests/
+pabot --processes 4 --argumentfile config/robot.args tests/          # parallel (venv must be active)
+ENV=ci robot --argumentfile config/robot.args tests/                 # use config/ci.yaml
+robot --argumentfile config/robot.args --variable DATA_SEED:81714172 tests/   # replay a run's data
+```
+
 On macOS, any Docker runtime works. A lightweight, CLI-only option is Colima:
 
 ```bash

@@ -2,6 +2,7 @@
 #   robot --argumentfile config/robot.args --include smoke tests/
 --outputdir results
 --pythonpath .
+--variablefile libraries/config_loader.py
 --loglevel DEBUG:INFO
 --skiponfailure known-defect
 --tagstatexclude AUTH-*

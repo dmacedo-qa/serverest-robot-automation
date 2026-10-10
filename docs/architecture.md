@@ -28,7 +28,7 @@ flowchart TD
 | **Flow** | Which endpoints make up a business step | `Create Customer With Token` = generate user → `POST User` → `POST Login` | Only that setup steps succeeded (fail fast) |
 | **Verification** | How to prove a fact | `Product Stock Should Be    ${id}    8` | Yes, that is its only job |
 | **Endpoint keyword** | Path, method, payload shape, headers | `POST Product    ${payload}    ${token}` | **No.** Returns the response. |
-| **Library** | HTTP, data generation, config, cleanup | `Generate Product`, `Register For Cleanup` | No |
+| **Library** | HTTP, data generation, config, cleanup | `Generate Product`, `Register Response For Cleanup` | No |
 
 ### Why endpoint keywords never assert
 
@@ -45,14 +45,18 @@ would need a second copy of the call. So:
 
 1. **Paths and payload shapes live only in `resources/api/`.** A test never contains `/produtos`
    or builds a JSON body by hand.
-2. **Tests never call RequestsLibrary directly.** No `POST On Session` in a `.robot` file.
+2. **All HTTP goes through `Send Request`** (`resources/common/http.resource`). No `POST On Session`
+   anywhere else. This is what keeps secrets out of the log (section 4).
 3. **Endpoint keywords do one HTTP call. Flows combine them.**
 4. **Assertions live in tests or in `resources/verifications/`.**
-5. **Negative tests may call endpoint keywords directly**, because the raw response *is* what they
-   test. They still use generated data and verification keywords.
+5. **Tests may call endpoint keywords directly when the raw response is what they test**: negative
+   tests, and single-endpoint checks like AUTH-01 or USR-01. They still use generated data and
+   verification keywords.
 6. **No hard-coded test data in tests.** Values come from the data factory (dynamic) or from
    `data/*.yaml` (static negative sets and expected messages).
-7. **Every created record is registered for cleanup** by the flow that created it.
+7. **Every create request is registered for cleanup immediately**, before any assertion, with
+   `Register Response For Cleanup`. A failing check later in the test, or an API defect that creates
+   a record in a negative test, never leaves data behind.
 
 ## 3. Example across the layers
 
@@ -66,9 +70,7 @@ ${PRODUCTS_PATH}    /produtos
 POST Product
     [Documentation]    Sends POST /produtos and returns the response, whatever its status.
     [Arguments]    ${payload}    ${token}=${NONE}
-    ${headers}=    Auth Header    ${token}
-    ${response}=    POST On Session    serverest    ${PRODUCTS_PATH}
-    ...    json=${payload}    headers=${headers}    expected_status=anything
+    ${response}=    Send Request    POST    ${PRODUCTS_PATH}    token=${token}    json=${payload}
     RETURN    ${response}
 ```
 
@@ -81,13 +83,13 @@ Admin Creates Product
     [Arguments]    ${admin_token}    &{overrides}
     ${product}=    Generate Product    &{overrides}
     ${response}=    POST Product    ${product}    ${admin_token}
-    Status Should Be    201    ${response}
+    Register Response For Cleanup    product    ${response}    ${admin_token}
+    Status Should Be    201    ${response}    msg=Setup failed: could not create product
     Set To Dictionary    ${product}    _id=${response.json()}[_id]
-    Register For Cleanup    product    ${product}[_id]
     RETURN    ${product}
 ```
 
-**Test** (`tests/carts/create_cart.robot`): reads like the scenario in the test plan.
+**Test** (`tests/carts/create_cart.robot`, Phase 5): reads like the scenario in the test plan.
 
 ```robotframework
 *** Test Cases ***
@@ -112,21 +114,32 @@ CRT-01 Creating A Cart Reserves Stock And Calculates Totals
 |---|---|---|
 | **Config loader** | `libraries/config_loader.py` | Reads `config/<env>.yaml` and exposes values such as `${BASE_URL}` as Robot variables. Environment variables override YAML. The environment is chosen with `ENV` (default `dev`). |
 | **Data factory** | `libraries/data_factory.py` | Builds users and products with Faker, using defaults plus overrides. Unique values use the run ID and the pabot worker ID. Seeded and replayable with `DATA_SEED`. |
-| **Cleanup registry** | `libraries/cleanup_registry.py` | Records what each test created. Teardown deletes in dependency order: carts → products → users. Best-effort: failures become warnings. |
-| **Token cache** | inside the auth flow | One login per persona per suite, refreshed before the 600 s expiry |
+| **Cleanup registry** | `libraries/cleanup_registry.py` | Records what each test (or suite setup) created, as soon as the API returns an `_id`. Teardown deletes in dependency order: carts → products → users. Best-effort: failures become warnings. |
+| **HTTP helpers** | `libraries/http_helpers.py` | Builds auth headers, reveals `Secret` values only inside `Send Request`, and logs a masked summary of each exchange |
+| **Record assertions** | `libraries/record_assertions.py` | Compares a record read from the API with the payload that created it, without ever printing secrets |
+| **Token handling** | `resources/flows/accounts.resource` | Logs in per persona and keeps the token as a `Secret`. Re-login before the 600 s expiry is planned for when a suite runs long enough to need it. |
 | **Messages** | `data/messages.yaml` | Every expected ServeRest message, verbatim, under an English key, for example `users.email_taken: "Este email já está sendo usado"` |
 | **Negative data sets** | `data/negative/*.yaml` | Invalid payloads and their expected field errors. They drive data-driven tests (`[Template]`). |
 | **Session setup** | `resources/common/setup.resource` | Creates the `serverest` HTTP session, logs the run ID and seed, and runs the cleanup teardown |
 
 ### Sensitive values in logs
 
-Passwords and the `Authorization` header must never appear in `log.html`. RequestsLibrary logs
-every request and response at INFO level, so:
+Passwords and tokens must never appear in `log.html` or `output.xml`. Two mechanisms work together:
 
-- The login and user-creation endpoint keywords lower Robot's log level (`Set Log Level    WARN`)
-  around the HTTP call and restore it afterwards.
-- The data factory returns passwords that are logged as `***`.
-- Tokens are kept in variables and never logged in full.
+1. **`Secret` values (Robot Framework 7.4+).** The data factory wraps every password in a `Secret`,
+   and login returns the token as a `Secret`. Robot logs these as `<secret>`, including when they
+   are assigned to variables or passed between keywords.
+2. **One masked HTTP entry point.** RequestsLibrary logs full requests and responses. `Send Request`
+   sets the log level to `WARN` during the call, reveals the secrets only there, and then logs its
+   own summary with `password` and `authorization` replaced by `***`:
+
+```
+POST http://localhost:3000/login → 200 (26 ms)
+Request body: { "email": "qa.2s0x.w0.n001@example.com", "password": "***" }
+Response body: { "message": "Login realizado com sucesso", "authorization": "***" }
+```
+
+Verified by searching `output.xml` after a run: no `Bearer ey…` strings and no unmasked `password` fields.
 
 ## 5. Configuration
 
@@ -157,6 +170,14 @@ Suites run in parallel with pabot (`pabot --processes 4 ...`). The design is par
   it falls back to `0` in a normal `robot` run).
 - No test uses ServeRest's seed records.
 - Stock is only asserted on products that the same test created.
+
+Each pabot worker is a separate process, so each one logs its own seed and run ID. `DATA_SEED`
+applies the same seed to every worker. To replay one suite's data, run that suite alone with the
+seed its log shows.
+
+pabot starts workers with the `python` on the `PATH`, so **the virtual environment must be
+activated** (`source .venv/bin/activate`). Calling `.venv/bin/pabot` without activating it makes
+the workers run on the system Python, without the project's packages.
 
 ## 7. Folder structure
 
@@ -189,7 +210,8 @@ serverest-robot-automation/
 │   └── contract/
 ├── docker-compose.yml
 ├── requirements.txt
-└── pyproject.toml             # Robocop lint and format settings
+├── pyproject.toml             # Robocop lint and format settings
+└── robot.toml                 # lets the RobotCode IDE extension resolve libraries and config
 ```
 
 Tests are grouped by **functional area**, not by layer, because the whole suite is API. Tags
