@@ -1,0 +1,48 @@
+# Expected ServeRest 3.2.2 messages, verbatim (Portuguese), under English keys.
+# Observed against a running instance on 2026-10-10. Update here if a ServeRest upgrade changes them.
+#
+# Field-level validation messages follow the pattern "<field> <rule>", e.g. "email é obrigatório".
+# Their rule suffixes are under `field_rules`, so tests can build "<field> <rule>" for any field.
+
+auth:
+  login_success: "Login realizado com sucesso"
+  invalid_credentials: "Email e/ou senha inválidos"
+  token_invalid: "Token de acesso ausente, inválido, expirado ou usuário do token não existe mais"
+  admin_only: "Rota exclusiva para administradores"
+
+common:
+  created: "Cadastro realizado com sucesso"
+  updated: "Registro alterado com sucesso"
+  deleted: "Registro excluído com sucesso"
+  nothing_deleted: "Nenhum registro excluído"
+  invalid_id: "id deve ter exatamente 16 caracteres alfanuméricos"
+
+users:
+  not_found: "Usuário não encontrado"
+  email_taken: "Este email já está sendo usado"
+  has_cart: "Não é permitido excluir usuário com carrinho cadastrado"
+
+products:
+  not_found: "Produto não encontrado"
+  name_taken: "Já existe produto com esse nome"
+  in_cart: "Não é permitido excluir produto que faz parte de carrinho"
+
+carts:
+  not_found: "Carrinho não encontrado"
+  one_per_user: "Não é permitido ter mais de 1 carrinho"
+  duplicate_product: "Não é permitido possuir produto duplicado"
+  insufficient_stock: "Produto não possui quantidade suficiente"
+  purchase_concluded: "Registro excluído com sucesso"
+  purchase_cancelled: "Registro excluído com sucesso. Estoque dos produtos reabastecido"
+  no_cart_for_user: "Não foi encontrado carrinho para esse usuário"
+
+field_rules:
+  required: "é obrigatório"
+  string: "deve ser uma string"
+  blank: "não pode ficar em branco"
+  invalid_email: "deve ser um email válido"
+  boolean_string: "deve ser 'true' ou 'false'"
+  positive_number: "deve ser um número positivo"
+  integer: "deve ser um inteiro"
+  min_zero: "deve ser maior ou igual a 0"
+  not_allowed: "não é permitido"

@@ -1,0 +1,15 @@
+# Pinned to releases at least ~2 weeks old at time of writing (2026-10-10).
+# Python 3.13 (see .python-version).
+
+# Core
+robotframework==7.5
+robotframework-requests==0.9.7
+robotframework-pabot==5.2.2
+
+# Test data & config
+Faker==40.39.0
+PyYAML==6.0.3
+python-dotenv==1.2.3
+
+# Static analysis / formatting for .robot and .resource files
+robotframework-robocop==9.1.0

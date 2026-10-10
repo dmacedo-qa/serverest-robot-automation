@@ -1,0 +1,14 @@
+# Shared Robot Framework options. Usage:
+#   robot --argumentfile config/robot.args --include smoke tests/
+--outputdir results
+--pythonpath .
+--loglevel DEBUG:INFO
+--skiponfailure known-defect
+--tagstatexclude AUTH-*
+--tagstatexclude USR-*
+--tagstatexclude PRD-*
+--tagstatexclude CRT-*
+--tagstatexclude E2E-*
+--tagstatexclude CON-*
+--tagstatexclude SEC-*
+--tagstatexclude DQ-*
