@@ -106,7 +106,7 @@ need a different tool), and the web UI. Each one is a conscious decision, listed
 You only need **Docker**:
 
 ```bash
-git clone https://github.com/<your-user>/serverest-robot-automation.git
+git clone https://github.com/dmacedo-qa/serverest-robot-automation.git
 cd serverest-robot-automation
 docker compose run --rm tests
 ```
