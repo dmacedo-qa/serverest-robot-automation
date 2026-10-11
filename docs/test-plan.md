@@ -10,7 +10,7 @@
 ## Summary
 
 127 test cases across 8 areas. Every expected result was checked against a running ServeRest 3.2.2,
-not copied from the documentation. 104 cases are automated today, including the critical and high
+not copied from the documentation. 111 cases are automated today, including the critical and high
 findings below; the *Automated* column in section 8 shows which.
 
 | Area | Positive | Negative | Edge | Contract | Security | Total |
@@ -279,13 +279,13 @@ Examples: `--include smoke`, `--include negative`, `--include cartsANDpriority:c
 
 | ID | Scenario | Expected result | Type | Priority | Automated |
 |---|---|---|:-:|:-:|:-:|
-| PLT-01 | `GET /version` | 200 `{"version": "3.2.2"}`. Also the entry criterion. | P | High |  |
-| PLT-02 | Unknown route (`GET /pedidos`) | 405 with a message naming the method and path | N | Low |  |
-| PLT-03 | Unsupported method (`PATCH /usuarios`) | 405 | N | Low |  |
-| PLT-04 | Malformed JSON on each write route | 400 `Adicione aspas em todos os valores...` | N | Medium |  |
-| PLT-05 | Invalid percent-encoding in the URL | 400 `Parâmetro de URL inválido...` | N | Low |  |
-| PLT-06 | Body larger than 100 KB | 413 | N | Low |  |
-| PLT-07 | CORS | `Access-Control-Allow-Origin: *` on responses | S | Low |  |
+| PLT-01 | `GET /version` | 200 `{"version": "3.2.2"}`. Also the entry criterion. | P | High | Yes |
+| PLT-02 | Unknown route (`GET /pedidos`) | 405 with a message naming the method and path | N | Low | Yes |
+| PLT-03 | Unsupported method (`PATCH /usuarios`) | 405 | N | Low | Yes |
+| PLT-04 | Malformed JSON on each write route | 400 `Adicione aspas em todos os valores...` | N | Medium | Yes |
+| PLT-05 | Invalid percent-encoding in the URL | 400 `Parâmetro de URL inválido...` | N | Low | Yes |
+| PLT-06 | Body larger than 100 KB | 413 | N | Low | Yes |
+| PLT-07 | CORS | `Access-Control-Allow-Origin: *` on responses | S | Low | Yes |
 
 ### 8.6 Contract
 
