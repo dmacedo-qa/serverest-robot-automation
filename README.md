@@ -161,8 +161,9 @@ The virtual environment must be active for pabot, because it starts its workers 
 
 ```
 docs/            test plan and architecture
-tests/           test suites, one folder per area (auth, users, products, carts, platform, contract, e2e)
+tests/           test suites, one folder per area; __init__.robot files hold the shared setup and tags
 resources/
+  main.resource  single import used by every test file
   api/           one keyword per endpoint call (no assertions)
   flows/         business steps built from endpoint keywords
   verifications/ assertion keywords

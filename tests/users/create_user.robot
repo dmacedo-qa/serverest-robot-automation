@@ -1,15 +1,7 @@
 *** Settings ***
 Documentation       Users: creating a user with POST /usuarios.
 
-Resource            ../../resources/common/setup.resource
-Resource            ../../resources/verifications/responses.resource
-Resource            ../../resources/verifications/records.resource
-
-Suite Setup         Start API Session
-Suite Teardown      End API Session
-Test Teardown       Clean Up Test Data
-
-Test Tags           users    regression
+Resource            ../../resources/main.resource
 
 
 *** Test Cases ***

@@ -57,6 +57,10 @@ would need a second copy of the call. So:
 7. **Every create request is registered for cleanup immediately**, before any assertion, with
    `Register Response For Cleanup`. A failing check later in the test, or an API defect that creates
    a record in a negative test, never leaves data behind.
+8. **Shared setup is declared once, never per file.** Test files import only
+   `resources/main.resource`. Session setup, cleanup teardown, and the `regression` tag live in
+   `tests/__init__.robot`; each area folder's `__init__.robot` sets its area tag. A new test file
+   needs one import line and can't forget the setup, the cleanup, or its area tag.
 
 ## 3. Example across the layers
 
@@ -120,7 +124,7 @@ CRT-01 Creating A Cart Reserves Stock And Calculates Totals
 | **Token handling** | `resources/flows/accounts.resource` | Logs in per persona and keeps the token as a `Secret`. Re-login before the 600 s expiry is planned for when a suite runs long enough to need it. |
 | **Messages** | `data/messages.yaml` | Every expected ServeRest message, verbatim, under an English key, for example `users.email_taken: "Este email já está sendo usado"` |
 | **Negative data sets** | `data/negative/*.yaml` | Invalid payloads and their expected field errors. They drive data-driven tests (`[Template]`). |
-| **Session setup** | `resources/common/setup.resource` | Creates the `serverest` HTTP session, logs the run ID and seed, and runs the cleanup teardown |
+| **Session setup** | `resources/common/setup.resource`, used by `tests/__init__.robot` | Creates the `serverest` HTTP session once per run (once per process under pabot), logs the run ID and seed, and runs the cleanup teardown after every test |
 
 ### Sensitive values in logs
 
@@ -195,12 +199,14 @@ serverest-robot-automation/
 │   └── architecture.md
 ├── libraries/                 # custom Python: config, data factory, cleanup, tag policy
 ├── resources/
+│   ├── main.resource          # the single import used by test files
 │   ├── api/                   # endpoint keywords: login, users, products, carts
 │   ├── flows/                 # business keywords
 │   ├── verifications/         # assertion keywords
 │   └── common/                # session setup, teardown, shared helpers
 ├── tests/
-│   ├── auth/                  # AUTH-*, TOK-*, SEC-02, SEC-08
+│   ├── __init__.robot         # session setup/teardown, cleanup, `regression` tag (all suites)
+│   ├── auth/                  # AUTH-*, TOK-*, SEC-02, SEC-08 (+ __init__.robot: area tag)
 │   ├── users/                 # USR-*, SEC-01/03/04/07, DQ-01/04/09/10
 │   ├── products/              # PRD-*, DQ-02/03/05
 │   ├── carts/                 # CRT-*, DQ-06/07/08

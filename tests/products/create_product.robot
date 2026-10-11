@@ -1,16 +1,7 @@
 *** Settings ***
 Documentation       Products: creating a product with POST /produtos.
 
-Resource            ../../resources/common/setup.resource
-Resource            ../../resources/flows/accounts.resource
-Resource            ../../resources/verifications/responses.resource
-Resource            ../../resources/verifications/records.resource
-
-Suite Setup         Start API Session
-Suite Teardown      End API Session
-Test Teardown       Clean Up Test Data
-
-Test Tags           products    regression
+Resource            ../../resources/main.resource
 
 
 *** Test Cases ***

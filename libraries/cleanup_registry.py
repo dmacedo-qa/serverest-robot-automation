@@ -1,6 +1,6 @@
 """Tracks the records each test or suite creates, so teardown can delete them.
 
-Records are registered in the scope where they were created: a test, or a suite setup.
+Records are registered in the scope where they were created: a test, or any suite setup.
 ``Pop Cleanup Items`` returns them in the order ServeRest allows them to be deleted:
 carts first (they lock users and products), then products, then users. Within each kind,
 the most recent record comes first.
@@ -54,7 +54,9 @@ class CleanupRegistry:
 
     @staticmethod
     def _current_scope() -> str:
+        """Records created inside a test belong to that test. Records created in any suite
+        setup share one bucket, emptied by the root suite teardown (tests/__init__.robot)."""
         variables = BuiltIn()
         test = variables.get_variable_value("${TEST NAME}")
         suite = variables.get_variable_value("${SUITE NAME}")
-        return f"test:{suite}.{test}" if test else f"suite:{suite}"
+        return f"test:{suite}.{test}" if test else "suite"

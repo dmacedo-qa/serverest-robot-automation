@@ -1,15 +1,7 @@
 *** Settings ***
 Documentation       Authentication: POST /login.
 
-Resource            ../../resources/common/setup.resource
-Resource            ../../resources/flows/accounts.resource
-Resource            ../../resources/verifications/responses.resource
-
-Suite Setup         Start API Session
-Suite Teardown      End API Session
-Test Teardown       Clean Up Test Data
-
-Test Tags           auth    regression
+Resource            ../../resources/main.resource
 
 
 *** Test Cases ***
