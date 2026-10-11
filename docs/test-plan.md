@@ -10,7 +10,7 @@
 ## Summary
 
 127 test cases across 8 areas. Every expected result was checked against a running ServeRest 3.2.2,
-not copied from the documentation. 83 cases are automated today, including the critical and high
+not copied from the documentation. 104 cases are automated today, including the critical and high
 findings below; the *Automated* column in section 8 shows which.
 
 | Area | Positive | Negative | Edge | Contract | Security | Total |
@@ -253,27 +253,27 @@ Examples: `--include smoke`, `--include negative`, `--include cartsANDpriority:c
 | ID | Scenario | Expected result | Type | Priority | Automated |
 |---|---|---|:-:|:-:|:-:|
 | CRT-01 | Create a cart with 2 products | 201; `precoTotal` = Σ price × qty; `quantidadeTotal` = Σ qty; each product's stock decreased | P | Critical | Yes |
-| CRT-02 | Read the cart by ID | Items with `precoUnitario`; `idUsuario` = the token's owner | P | High |  |
-| CRT-03 | List carts filtered by `idUsuario` | Only that user's cart | P | Low |  |
+| CRT-02 | Read the cart by ID | Items with `precoUnitario`; `idUsuario` = the token's owner | P | High | Yes |
+| CRT-03 | List carts filtered by `idUsuario` | Only that user's cart | P | Low | Yes |
 | CRT-04 | Conclude the purchase | 200; cart gone; stock stays reduced | P | Critical | Yes |
 | CRT-05 | Cancel the purchase | 200 `...Estoque dos produtos reabastecido`; cart gone; stock restored exactly | P | Critical | Yes |
-| CRT-06 | New cart after concluding a purchase | 201 (the one-cart rule only covers active carts) | P | Medium |  |
-| CRT-07 | Admin creates a cart | 201 (any authenticated user can buy) | P | Low |  |
-| CRT-08 | Buy exactly the remaining stock | 201; stock becomes 0 | P | High |  |
+| CRT-06 | New cart after concluding a purchase | 201 (the one-cart rule only covers active carts) | P | Medium | Yes |
+| CRT-07 | Admin creates a cart | 201 (any authenticated user can buy) | P | Low | Yes |
+| CRT-08 | Buy exactly the remaining stock | 201; stock becomes 0 | P | High | Yes |
 | CRT-09 | Second cart for the same user | 400 `Não é permitido ter mais de 1 carrinho` | N | High | Yes |
-| CRT-10 | Invalid body: empty list, `produtos` not an array, item missing fields, quantity 0 / −1 / 1.5, unknown item field | 400 with the exact message; stock unchanged | N | High |  |
-| CRT-11 | One valid and one unknown product | 400 `Produto não encontrado` with `item.index`; the valid product's stock is unchanged | N | High |  |
+| CRT-10 | Invalid body: empty list, `produtos` not an array, item missing fields, quantity 0 / −1 / 1.5, unknown item field | 400 with the exact message; stock unchanged | N | High | Yes |
+| CRT-11 | One valid and one unknown product | 400 `Produto não encontrado` with `item.index`; the valid product's stock is unchanged | N | High | Yes |
 | CRT-12 | Quantity above stock | 400 with `quantidadeEstoque`; nothing reserved | N | Critical | Yes |
-| CRT-13 | Same product twice, next to each other | 400 `Não é permitido possuir produto duplicado` with `idProdutosDuplicados` | N | High |  |
-| CRT-14 | Anonymous: create, conclude, cancel | 401 | N | High |  |
-| CRT-15 | GET by an unknown ID and by a malformed ID | 400 not found / 400 ID rule | N | Medium |  |
-| CRT-16 | Invalid filters: `precoTotal=0`, `quantidadeTotal=-1`, `precoTotal=abc` | 400 with field message | N | Low |  |
-| CRT-17 | Conclude or cancel without a cart | 200 `Não foi encontrado carrinho para esse usuário` | E | Low |  |
-| CRT-18 | Product price changes after the cart was created | Cart keeps the price from creation time | E | High |  |
-| CRT-19 | Product stock edited while in a cart, then the cart is cancelled | Cancelled quantity is added to the *current* stock (edited to 50, cancel 2 → 52) | E | Medium |  |
-| CRT-20 | Product with stock 0 | 400 `Produto não possui quantidade suficiente` | E | Medium |  |
-| CRT-21 | Cart with 10 different products | Totals correct for all 10 | E | Medium |  |
-| CRT-22 | Quantity equal to stock + 1 | 400 (boundary next to CRT-08) | E | High |  |
+| CRT-13 | Same product twice, next to each other | 400 `Não é permitido possuir produto duplicado` with `idProdutosDuplicados` | N | High | Yes |
+| CRT-14 | Anonymous: create, conclude, cancel | 401 | N | High | Yes |
+| CRT-15 | GET by an unknown ID and by a malformed ID | 400 not found / 400 ID rule | N | Medium | Yes |
+| CRT-16 | Invalid filters: `precoTotal=0`, `quantidadeTotal=-1`, `precoTotal=abc` | 400 with field message | N | Low | Yes |
+| CRT-17 | Conclude or cancel without a cart | 200 `Não foi encontrado carrinho para esse usuário` | E | Low | Yes |
+| CRT-18 | Product price changes after the cart was created | Cart keeps the price from creation time | E | High | Yes |
+| CRT-19 | Product stock edited while in a cart, then the cart is cancelled | Cancelled quantity is added to the *current* stock (edited to 50, cancel 2 → 52) | E | Medium | Yes |
+| CRT-20 | Product with stock 0 | 400 `Produto não possui quantidade suficiente` | E | Medium | Yes |
+| CRT-21 | Cart with 10 different products | Totals correct for all 10 | E | Medium | Yes |
+| CRT-22 | Quantity equal to stock + 1 | 400 (boundary next to CRT-08) | E | High | Yes |
 
 ### 8.5 Platform (HTTP layer)
 
@@ -321,9 +321,9 @@ show up in reports without blocking the pipeline.
 | DQ-03 | `preco` must be a JSON number | `"10"` and `"1e2"` accepted and converted | N | Low | Yes (known defect) |
 | DQ-04 | User `nome` can't be blank | `"   "` accepted | N | Medium | Yes (known defect) |
 | DQ-05 | Product `nome` can't be blank | `"   "` accepted and stored as `""` | N | Medium | Yes (known defect) |
-| DQ-06 | Cart `quantidade` must be a JSON number | `"2"` accepted | N | Low |  |
+| DQ-06 | Cart `quantidade` must be a JSON number | `"2"` accepted | N | Low | Yes (known defect) |
 | DQ-07 | A cart can't contain the same product twice | `[A, B, A]` accepted: the cart holds 8 units of A (stock 5), and stock drops by only 4 | N | Critical | Yes |
-| DQ-08 | Stock never goes below what's actually sold | Consequence of DQ-07: concluding that cart sells 8 units while stock shows 1 | N | Critical |  |
+| DQ-08 | Stock never goes below what's actually sold | Consequence of DQ-07: concluding that cart sells 8 units while stock shows 1 | N | Critical | Yes (known defect) |
 | DQ-09 | ID validation is consistent across verbs | GET rejects malformed IDs; PUT and DELETE on `/usuarios` accept them, and PUT creates a user | N | Low | Yes (known defect) |
 | DQ-10 | PUT on an unknown ID either updates that ID or returns 404 | Creates a record with a *different* ID (USR-18, PRD-17) | E | Low | Yes (known defect) |
 | DRIFT-01 | Swagger field name matches the API | Delete product in cart: Swagger says `idCarrinho`, API returns `idCarrinhos` | C | Medium |  |
@@ -336,8 +336,8 @@ show up in reports without blocking the pipeline.
 | ID | Journey | Type | Priority | Automated |
 |---|---|:-:|:-:|:-:|
 | E2E-01 | Admin creates 2 products → customer registers and logs in → creates a cart → totals and stock checked → concludes → stock final, cart gone | P | Critical | Yes |
-| E2E-02 | Same journey, but the customer cancels → stock fully restored → the customer can now be deleted | P | High |  |
-| E2E-03 | Admin can't delete a product while it's in a cart → customer concludes → admin deletes it successfully | P | High |  |
+| E2E-02 | Same journey, but the customer cancels → stock fully restored → the customer can now be deleted | P | High | Yes |
+| E2E-03 | Admin can't delete a product while it's in a cart → customer concludes → admin deletes it successfully | P | High | Yes |
 
 ---
 
