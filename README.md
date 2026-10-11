@@ -1,9 +1,12 @@
 # ServeRest API Test Automation
 
+[![API tests](https://github.com/dmacedo-qa/serverest-robot-automation/actions/workflows/tests.yml/badge.svg)](https://github.com/dmacedo-qa/serverest-robot-automation/actions/workflows/tests.yml)
+
 API tests for [ServeRest](https://github.com/ServeRest/ServeRest), an open-source REST API that
 simulates an online store (users, products, carts). Written in Robot Framework with
 RequestsLibrary, running against a pinned ServeRest 3.2.2 in Docker.
 
+- [Latest test report](https://dmacedo-qa.github.io/serverest-robot-automation/): results of the last run on `main`, published by CI
 - [Test plan](docs/test-plan.md): 127 cases, how they were designed, and the defects found
 - [Architecture](docs/architecture.md): layers, conventions, and how test data is handled
 
@@ -173,7 +176,8 @@ USR-10 Duplicate Email Is Rejected
 
 ## Status
 
-32 of the 127 planned cases are automated, chosen to cover every test type and all the critical
+CI runs the smoke tests on every pull request and the full suite on every push to `main` and
+nightly, then publishes the report. 32 of the 127 planned cases are automated, chosen to cover every test type and all the critical
 and high findings. The rest are being added area by area; the test plan marks which are done.
 
 ## Stack

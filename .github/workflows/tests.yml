@@ -1,0 +1,72 @@
+name: API tests
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "0 6 * * *"   # nightly full run, 03:00 BRT
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: ${{ github.event_name == 'pull_request' && 'Smoke' || 'Full regression' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Run tests
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            docker compose run --rm tests --include smoke tests
+          else
+            docker compose run --rm tests
+          fi
+
+      - name: Stop ServeRest
+        if: always()
+        run: docker compose down
+
+      - name: Upload reports
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: robot-results
+          path: results/
+          retention-days: 14
+
+      - name: Prepare report site
+        if: always() && github.event_name != 'pull_request'
+        run: |
+          mkdir site
+          cp results/report.html results/log.html site/
+          cp results/report.html site/index.html
+
+      - name: Upload report site
+        if: always() && github.event_name != 'pull_request'
+        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: site/
+
+  publish:
+    name: Publish report
+    if: always() && github.event_name != 'pull_request' && needs.test.result != 'cancelled'
+    needs: test
+    runs-on: ubuntu-24.04
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
