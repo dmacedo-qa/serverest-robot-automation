@@ -18,6 +18,7 @@ MSG:
     deleted: "Registro excluído com sucesso"
     nothing_deleted: "Nenhum registro excluído"
     invalid_id: "id deve ter exatamente 16 caracteres alfanuméricos"
+    payload_too_large: "Payload too large"
 
   users:
     not_found: "Usuário não encontrado"
@@ -49,3 +50,4 @@ MSG:
     min_zero: "deve ser maior ou igual a 0"
     not_allowed: "não é permitido"
     max_safe_integer: "não pode ser maior que 9007199254740991"
+    sixteen_chars: "deve ter exatamente 16 caracteres alfanuméricos"

@@ -10,7 +10,7 @@
 ## Summary
 
 127 test cases across 8 areas. Every expected result was checked against a running ServeRest 3.2.2,
-not copied from the documentation. 41 cases are automated today, including the critical and high
+not copied from the documentation. 65 cases are automated today, including the critical and high
 findings below; the *Automated* column in section 8 shows which.
 
 | Area | Positive | Negative | Edge | Contract | Security | Total |
@@ -197,32 +197,32 @@ Examples: `--include smoke`, `--include negative`, `--include cartsANDpriority:c
 | ID | Scenario | Expected result | Type | Priority | Automated |
 |---|---|---|:-:|:-:|:-:|
 | USR-01 | Create a customer, then an admin; read each back by ID | 201, then GET returns exactly the sent data | P | Critical | Yes |
-| USR-02 | List users | `quantidade` equals the length of `usuarios` | P | Medium |  |
-| USR-03 | Filter by `email` | Only that user | P | Medium |  |
-| USR-04 | Filter by `nome` with part of the name, in another case | Matches (partial, case-insensitive) | P | Low |  |
-| USR-05 | Filter by `administrador` | Only users with that role | P | Low |  |
-| USR-06 | Combine filters (`nome` + `administrador`) | Only users matching both | P | Low |  |
-| USR-07 | Update a user with PUT | 200 `Registro alterado com sucesso`; GET shows the new values | P | High |  |
-| USR-08 | PUT keeping the user's own email | 200, not a false "email in use" | P | Medium |  |
-| USR-09 | Delete a user without a cart | 200, then GET → 400 `Usuário não encontrado` | P | High |  |
+| USR-02 | List users | `quantidade` equals the length of `usuarios` | P | Medium | Yes |
+| USR-03 | Filter by `email` | Only that user | P | Medium | Yes |
+| USR-04 | Filter by `nome` with part of the name, in another case | Matches (partial, case-insensitive) | P | Low | Yes |
+| USR-05 | Filter by `administrador` | Only users with that role | P | Low | Yes |
+| USR-06 | Combine filters (`nome` + `administrador`) | Only users matching both | P | Low | Yes |
+| USR-07 | Update a user with PUT | 200 `Registro alterado com sucesso`; GET shows the new values | P | High | Yes |
+| USR-08 | PUT keeping the user's own email | 200, not a false "email in use" | P | Medium | Yes |
+| USR-09 | Delete a user without a cart | 200, then GET → 400 `Usuário não encontrado` | P | High | Yes |
 | USR-10 | Create with an email already in use | 400 `Este email já está sendo usado`; no record created | N | Critical | Yes |
-| USR-11 | PUT to another user's email | 400 `Este email já está sendo usado` | N | High |  |
+| USR-11 | PUT to another user's email | 400 `Este email já está sendo usado` | N | High | Yes |
 | USR-12 | Invalid body: each field missing, each field blank, 4 invalid email formats, `administrador` = `"TRUE"` / `"yes"` / `true` (boolean), `nome` as a number, unknown field | 400 with the exact message for each field; no record created | N | High | Yes |
-| USR-13 | GET by a well-formed ID that doesn't exist | 400 `Usuário não encontrado` | N | Medium |  |
-| USR-14 | GET by a malformed ID: 15 chars, 17 chars, special characters | 400 `id deve ter exatamente 16 caracteres alfanuméricos` | N | Medium |  |
-| USR-15 | Delete a user who has a cart | 400 with `idCarrinho`; user still exists | N | High |  |
-| USR-16 | Invalid filters: `email=bad`, `administrador=TRUE`, unknown parameter | 400 with field message | N | Low |  |
-| USR-17 | Delete an ID that doesn't exist | 200 `Nenhum registro excluído` (idempotent) | E | Low |  |
-| USR-18 | PUT on an unknown ID | 201: creates a user, but with a new server-generated ID, not the one in the URL | E | Medium |  |
-| USR-19 | Names with accents, apostrophes, and emoji (`João D'Ávila 😀`) | Stored and returned exactly | E | Medium |  |
-| USR-20 | 300-character name | Accepted (no length limit) | E | Low |  |
-| USR-21 | Email with plus-addressing and subdomain (`qa+tag@sub.example.com`) | Accepted | E | Low |  |
-| USR-22 | Empty filter value (`?nome=`) | Ignored: returns the full list | E | Low |  |
-| USR-23 | Body larger than 100 KB | 413 `Payload too large` | E | Low |  |
+| USR-13 | GET by a well-formed ID that doesn't exist | 400 `Usuário não encontrado` | N | Medium | Yes |
+| USR-14 | GET by a malformed ID: 15 chars, 17 chars, special characters | 400 `id deve ter exatamente 16 caracteres alfanuméricos` | N | Medium | Yes |
+| USR-15 | Delete a user who has a cart | 400 with `idCarrinho`; user still exists | N | High | Yes |
+| USR-16 | Invalid filters: `email=bad`, `administrador=TRUE`, unknown parameter | 400 with field message | N | Low | Yes |
+| USR-17 | Delete an ID that doesn't exist | 200 `Nenhum registro excluído` (idempotent) | E | Low | Yes |
+| USR-18 | PUT on an unknown ID | 201: creates a user, but with a new server-generated ID, not the one in the URL | E | Medium | Yes |
+| USR-19 | Names with accents, apostrophes, and emoji (`João D'Ávila 😀`) | Stored and returned exactly | E | Medium | Yes |
+| USR-20 | 300-character name | Accepted (no length limit) | E | Low | Yes |
+| USR-21 | Email with plus-addressing and subdomain (`qa+tag@sub.example.com`) | Accepted | E | Low | Yes |
+| USR-22 | Empty filter value (`?nome=`) | Ignored: returns the full list | E | Low | Yes |
+| USR-23 | Body larger than 100 KB | 413 `Payload too large` | E | Low | Yes |
 | SEC-01 | User listing must not expose passwords | Fails today: `password` in plain text | S | High | Yes (known defect) |
 | SEC-03 | PUT and DELETE on users must require a token | Fails today: both work anonymously, on any user | S | High | Yes (known defect) |
 | SEC-04 | Users must not be searchable by password | Fails today: `?password=` does a case-insensitive partial match | S | Critical | Yes (known defect) |
-| SEC-07 | Self-registration must not grant admin | Fails today: anyone can create an admin account | S | High |  |
+| SEC-07 | Self-registration must not grant admin | Fails today: anyone can create an admin account | S | High | Yes (known defect) |
 
 ### 8.3 Products
 
@@ -319,13 +319,13 @@ show up in reports without blocking the pipeline.
 | DQ-01 | Email uniqueness ignores case | `ADM@x.com` and `adm@x.com` are separate accounts | N | Medium | Yes |
 | DQ-02 | Product name uniqueness ignores case | `Mouse X` and `MOUSE X` both accepted | N | Medium |  |
 | DQ-03 | `preco` must be a JSON number | `"10"` and `"1e2"` accepted and converted | N | Low |  |
-| DQ-04 | User `nome` can't be blank | `"   "` accepted | N | Medium |  |
+| DQ-04 | User `nome` can't be blank | `"   "` accepted | N | Medium | Yes (known defect) |
 | DQ-05 | Product `nome` can't be blank | `"   "` accepted and stored as `""` | N | Medium |  |
 | DQ-06 | Cart `quantidade` must be a JSON number | `"2"` accepted | N | Low |  |
 | DQ-07 | A cart can't contain the same product twice | `[A, B, A]` accepted: the cart holds 8 units of A (stock 5), and stock drops by only 4 | N | Critical | Yes |
 | DQ-08 | Stock never goes below what's actually sold | Consequence of DQ-07: concluding that cart sells 8 units while stock shows 1 | N | Critical |  |
-| DQ-09 | ID validation is consistent across verbs | GET rejects malformed IDs; PUT and DELETE on `/usuarios` accept them, and PUT creates a user | N | Low |  |
-| DQ-10 | PUT on an unknown ID either updates that ID or returns 404 | Creates a record with a *different* ID (USR-18, PRD-17) | E | Low |  |
+| DQ-09 | ID validation is consistent across verbs | GET rejects malformed IDs; PUT and DELETE on `/usuarios` accept them, and PUT creates a user | N | Low | Yes (known defect) |
+| DQ-10 | PUT on an unknown ID either updates that ID or returns 404 | Creates a record with a *different* ID (USR-18, PRD-17) | E | Low | Yes (known defect) |
 | DRIFT-01 | Swagger field name matches the API | Delete product in cart: Swagger says `idCarrinho`, API returns `idCarrinhos` | C | Medium |  |
 | DRIFT-02 | Every accepted field is documented | Products accept and return `imagem`, which the Swagger doesn't list | C | Low |  |
 | DRIFT-03 | Documented filter limits match the API | Swagger: `quantidadeTotal ≥ 0`. API: rejects 0 | C | Low |  |
