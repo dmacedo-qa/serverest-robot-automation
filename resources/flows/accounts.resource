@@ -44,3 +44,15 @@ Create Admin With Token
     ${token}=    Log In As    ${admin}
     Set To Dictionary    ${admin}    token=${token}
     RETURN    ${admin}
+
+Update User
+    [Documentation]    Sends PUT /usuarios/{id} with the user's current data plus ``changes``
+    ...    (e.g. ``administrador=false``). Must succeed. Returns the updated payload plus ``_id``.
+    [Arguments]    ${user}    &{changes}
+    ${payload}=    Generate User    nome=${user}[nome]    email=${user}[email]
+    ...    password=${user}[password]    administrador=${user}[administrador]
+    Set To Dictionary    ${payload}    &{changes}
+    ${response}=    PUT User    ${user}[_id]    ${payload}
+    Status Should Be    200    ${response}    msg=Setup failed: could not update user
+    Set To Dictionary    ${payload}    _id=${user}[_id]
+    RETURN    ${payload}

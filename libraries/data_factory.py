@@ -48,7 +48,7 @@ class DataFactory:
         self,
         nome: str | None = None,
         email: str | None = None,
-        password: str | None = None,
+        password: Secret | str | None = None,
         administrador: str = "false",
     ) -> dict:
         """Returns a valid ``POST /usuarios`` payload. Any field can be overridden.
@@ -59,9 +59,14 @@ class DataFactory:
         return {
             "nome": self._faker.name() if nome is None else nome,
             "email": self.unique_email() if email is None else email,
-            "password": Secret(self._faker.password(length=12) if password is None else password),
+            "password": self._password(password),
             "administrador": administrador,
         }
+
+    def _password(self, password):
+        if isinstance(password, Secret):
+            return password
+        return Secret(self._faker.password(length=12) if password is None else password)
 
     @keyword
     def generate_product(
