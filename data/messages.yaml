@@ -52,3 +52,5 @@ MSG:
     not_allowed: "não é permitido"
     max_safe_integer: "não pode ser maior que 9007199254740991"
     sixteen_chars: "deve ter exatamente 16 caracteres alfanuméricos"
+    array: "deve ser um array"
+    one_required: "não contém 1 valor obrigatório"
