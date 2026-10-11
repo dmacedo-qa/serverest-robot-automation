@@ -10,6 +10,8 @@ USR-01 New Customer Is Created And Retrievable By Id
     New User Should Be Created And Retrievable    administrador=false
 
 USR-01 New Admin Is Created And Retrievable By Id
+    [Documentation]    Current behavior: anyone can register an admin. SEC-07 asserts that this
+    ...    shouldn't be allowed; if ServeRest fixes it, this case changes with it.
     [Tags]    USR-01    positive    priority:critical
     New User Should Be Created And Retrievable    administrador=true
 
@@ -56,6 +58,46 @@ DQ-01 Email Uniqueness Ignores Letter Case
 
     Status Should Be    400    ${response}    msg=Same email in upper case created a second account
     Response Message Should Be    ${response}    ${MSG.users.email_taken}
+
+USR-19 Accents, Apostrophes, And Emoji In Names Are Kept Exactly
+    [Tags]    USR-19    edge    priority:medium
+    ${user}=    Register User    nome=João D'Ávila Çaña 😀
+
+    User Should Exist With Data    ${user}[_id]    ${user}
+
+USR-20 Long Names Are Accepted
+    [Documentation]    There is no length limit on ``nome``.
+    [Tags]    USR-20    edge    priority:low
+    ${user}=    Register User    nome=${{ 'N' * 300 }}
+
+    User Should Exist With Data    ${user}[_id]    ${user}
+
+USR-21 Plus-Addressing And Subdomains Are Valid Emails
+    [Tags]    USR-21    edge    priority:low
+    ${email}=    Unique Email
+    ${user}=    Register User    email=${{ $email.replace('@', '+tag@sub.') }}
+
+    User Should Exist With Data    ${user}[_id]    ${user}
+
+USR-23 Body Larger Than 100 KB Is Rejected
+    [Tags]    USR-23    edge    priority:low
+    ${user}=    Generate User    nome=${{ 'x' * 120000 }}
+
+    ${response}=    POST User    ${user}
+    Register Response For Cleanup    user    ${response}
+
+    Request Should Fail With    ${response}    413    ${MSG.common.payload_too_large}
+
+DQ-04 Blank Name Is Rejected
+    [Documentation]    ``"   "`` passes validation because only empty strings are checked.
+    [Tags]    DQ-04    negative    priority:medium    known-defect
+    ${user}=    Generate User    nome=${SPACE * 3}
+
+    ${response}=    POST User    ${user}
+    Register Response For Cleanup    user    ${response}
+
+    Status Should Be    400    ${response}    msg=A name made only of spaces was accepted
+    Response Should Have Field Error    ${response}    nome    blank
 
 
 *** Keywords ***
