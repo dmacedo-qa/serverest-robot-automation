@@ -67,6 +67,56 @@ SEC-02 JWT Payload Must Not Contain The Password
 
     Should Not Contain    ${fields}    password    msg=JWT payload exposes the password. Fields: ${fields}
 
+TOK-07 Token Of A Deleted User Returns 401
+    [Tags]    TOK-07    negative    priority:medium
+    ${customer}=    Create Customer With Token
+    ${deleted}=    DELETE User    ${customer}[_id]
+    Status Should Be    200    ${deleted}
+
+    ${response}=    DELETE Cart To Cancel Purchase    ${customer}[token]
+
+    Request Should Fail With    ${response}    401    ${MSG.auth.token_invalid}
+
+TOK-08 Token Stops Working After A Password Change
+    [Tags]    TOK-08    negative    priority:medium
+    ${customer}=    Create Customer With Token
+    Update User    ${customer}    password=a-new-password
+
+    ${response}=    DELETE Cart To Cancel Purchase    ${customer}[token]
+
+    Request Should Fail With    ${response}    401    ${MSG.auth.token_invalid}
+
+TOK-09 Demoted Admin Loses Admin Access Immediately
+    [Documentation]    The role is read from the database on every request, not from the token.
+    [Tags]    TOK-09    negative    priority:high
+    ${admin}=    Create Admin With Token
+    Update User    ${admin}    administrador=false
+    ${product}=    Generate Product
+
+    ${response}=    POST Product    ${product}    ${admin}[token]
+    Register Response For Cleanup    product    ${response}
+
+    Request Should Fail With    ${response}    403    ${MSG.auth.admin_only}
+
+TOK-10 Token Survives A Name Change
+    [Documentation]    Only email and password are bound to the token.
+    [Tags]    TOK-10    edge    priority:low
+    ${customer}=    Create Customer With Token
+    Update User    ${customer}    nome=Renamed Customer
+
+    ${response}=    DELETE Cart To Cancel Purchase    ${customer}[token]
+
+    Status Should Be    200    ${response}
+
+SEC-08 Responses Carry Security Headers
+    [Tags]    SEC-08    security    priority:medium
+    ${response}=    GET Version
+
+    Should Be Equal    ${response.headers}[X-Frame-Options]    SAMEORIGIN
+    Should Be Equal    ${response.headers}[X-Content-Type-Options]    nosniff
+    Should Start With    ${response.headers}[Strict-Transport-Security]    max-age\=
+    Should Not Contain    ${response.headers}    X-Powered-By    msg=Server technology is disclosed
+
 
 *** Keywords ***
 Authorization Header Should Be Rejected

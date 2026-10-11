@@ -19,12 +19,12 @@ MASK = "***"
 class HttpHelpers:
 
     @keyword
-    def auth_headers(self, token: Secret | str | None = None) -> dict:
-        """Returns request headers, with ``Authorization`` only when a token is given."""
-        if token is None:
-            return {}
-        value = token.value if isinstance(token, Secret) else token
-        return {"Authorization": value}
+    def auth_headers(self, token: Secret | str | None = None, extra: dict | None = None) -> dict:
+        """Returns request headers: ``Authorization`` when a token is given, plus ``extra``."""
+        headers = dict(extra or {})
+        if token is not None:
+            headers["Authorization"] = token.value if isinstance(token, Secret) else token
+        return headers
 
     @keyword
     def reveal_secrets(self, data):

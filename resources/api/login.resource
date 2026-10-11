@@ -16,6 +16,13 @@ POST Login
     ${response}=    POST Login With Body    ${body}
     RETURN    ${response}
 
+POST Login As Form
+    [Documentation]    Sends POST /login as ``application/x-www-form-urlencoded``.
+    [Arguments]    ${email}    ${password}
+    VAR    &{form}    email=${email}    password=${password}
+    ${response}=    Send Request    POST    ${LOGIN_PATH}    data=${form}
+    RETURN    ${response}
+
 POST Login With Body
     [Documentation]    Sends POST /login with any body, including invalid ones.
     [Arguments]    ${body}

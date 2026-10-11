@@ -9,6 +9,7 @@ Resource            api/login.resource
 Resource            api/users.resource
 Resource            api/products.resource
 Resource            api/carts.resource
+Resource            api/platform.resource
 Resource            flows/accounts.resource
 Resource            flows/catalog.resource
 Resource            flows/shopping.resource
