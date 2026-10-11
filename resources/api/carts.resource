@@ -13,7 +13,7 @@ ${CARTS_PATH}       /carrinhos
 POST Cart
     [Documentation]    Sends POST /carrinhos. ``items`` is a list of ``{idProduto, quantidade}``.
     [Arguments]    ${items}    ${token}=${NONE}
-    VAR    &{body}=    produtos=${items}
+    VAR    &{body}    produtos=${items}
     ${response}=    Send Request    POST    ${CARTS_PATH}    token=${token}    json=${body}
     RETURN    ${response}
 

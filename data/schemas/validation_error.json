@@ -1,0 +1,7 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "400 schema validation error: one message per invalid field",
+  "type": "object",
+  "minProperties": 1,
+  "additionalProperties": { "type": "string", "minLength": 1 }
+}

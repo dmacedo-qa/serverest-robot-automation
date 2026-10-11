@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "POST /login 200",
+  "type": "object",
+  "required": ["message", "authorization"],
+  "properties": {
+    "message": { "const": "Login realizado com sucesso" },
+    "authorization": { "type": "string", "pattern": "^Bearer [\\w-]+\\.[\\w-]+\\.[\\w-]+$" }
+  },
+  "additionalProperties": false
+}

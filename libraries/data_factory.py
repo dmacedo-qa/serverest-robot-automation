@@ -84,6 +84,14 @@ class DataFactory:
         }
 
     @keyword
+    def cart_items(self, *product_and_quantity) -> list[dict]:
+        """Builds the ``produtos`` list of a cart from pairs: ``product_id  quantity  ...``."""
+        if len(product_and_quantity) % 2:
+            raise ValueError("Cart Items expects pairs of product ID and quantity.")
+        pairs = zip(product_and_quantity[::2], product_and_quantity[1::2])
+        return [{"idProduto": product_id, "quantidade": int(quantity)} for product_id, quantity in pairs]
+
+    @keyword
     def unique_email(self) -> str:
         return f"qa.{self._unique_tag('.')}@{EMAIL_DOMAIN}"
 

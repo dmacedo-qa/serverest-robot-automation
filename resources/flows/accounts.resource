@@ -13,9 +13,10 @@ Resource            ../api/login.resource
 *** Keywords ***
 Register User
     [Documentation]    Creates a user with generated data and registers it for cleanup.
+    ...    Any field can be overridden, e.g. ``administrador=true``.
     ...    Returns the payload plus the ``_id`` ServeRest assigned.
-    [Arguments]    ${administrador}=false
-    ${user}=    Generate User    administrador=${administrador}
+    [Arguments]    &{overrides}
+    ${user}=    Generate User    &{overrides}
     ${response}=    POST User    ${user}
     Register Response For Cleanup    user    ${response}
     Status Should Be    201    ${response}    msg=Setup failed: could not register user

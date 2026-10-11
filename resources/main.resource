@@ -11,5 +11,7 @@ Resource            api/products.resource
 Resource            api/carts.resource
 Resource            flows/accounts.resource
 Resource            flows/catalog.resource
+Resource            flows/shopping.resource
 Resource            verifications/responses.resource
 Resource            verifications/records.resource
+Library             libraries.jwt_tools.JwtTools

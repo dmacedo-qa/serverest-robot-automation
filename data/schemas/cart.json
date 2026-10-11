@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "GET /carrinhos/{id} 200",
+  "type": "object",
+  "required": ["produtos", "precoTotal", "quantidadeTotal", "idUsuario", "_id"],
+  "properties": {
+    "produtos": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["idProduto", "quantidade", "precoUnitario"],
+        "properties": {
+          "idProduto": { "$ref": "#/$defs/id" },
+          "quantidade": { "type": "integer", "minimum": 1 },
+          "precoUnitario": { "type": "integer", "minimum": 1 }
+        },
+        "additionalProperties": false
+      }
+    },
+    "precoTotal": { "type": "integer", "minimum": 1 },
+    "quantidadeTotal": { "type": "integer", "minimum": 1 },
+    "idUsuario": { "$ref": "#/$defs/id" },
+    "_id": { "$ref": "#/$defs/id" }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "id": { "type": "string", "pattern": "^[a-zA-Z0-9]{16}$" }
+  }
+}

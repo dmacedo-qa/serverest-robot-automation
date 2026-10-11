@@ -15,6 +15,12 @@ Start API Session
     Create Session    ${SESSION}    ${BASE_URL}    timeout=${REQUEST_TIMEOUT}    verify=${VERIFY_SSL}
     Log Test Data Context
 
+Use Short Token Instance
+    [Documentation]    Sends the rest of the current test to the ServeRest instance whose tokens
+    ...    expire after 5 seconds. Session setup and cleanup go to the same instance.
+    Create Session    short-token    ${SHORT_TOKEN_BASE_URL}    timeout=${REQUEST_TIMEOUT}    verify=${VERIFY_SSL}
+    VAR    ${SESSION}    short-token    scope=TEST    # robocop: off=no-test-variable
+
 End API Session
     [Documentation]    Deletes records created in suite setup, then closes the session.
     Clean Up Test Data
