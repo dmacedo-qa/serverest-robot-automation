@@ -102,6 +102,11 @@ class DataFactory:
         return [{"idProduto": product_id, "quantidade": int(quantity)} for product_id, quantity in pairs]
 
     @keyword
+    def unique_tag(self) -> str:
+        """Returns a short value no other test or worker will use, e.g. ``k7f2w0n014``."""
+        return self._unique_tag("")
+
+    @keyword
     def unique_email(self) -> str:
         return f"qa.{self._unique_tag('.')}@{EMAIL_DOMAIN}"
 
