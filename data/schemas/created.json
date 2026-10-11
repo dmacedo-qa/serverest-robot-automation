@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "201 Created",
+  "type": "object",
+  "required": [
+    "message",
+    "_id"
+  ],
+  "properties": {
+    "message": {
+      "const": "Cadastro realizado com sucesso"
+    },
+    "_id": {
+      "type": "string",
+      "pattern": "^[a-zA-Z0-9]{16}$"
+    }
+  },
+  "additionalProperties": false
+}

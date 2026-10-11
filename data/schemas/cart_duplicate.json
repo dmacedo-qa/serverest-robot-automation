@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "POST /carrinhos 400: duplicate products",
+  "type": "object",
+  "required": [
+    "message",
+    "idProdutosDuplicados"
+  ],
+  "properties": {
+    "message": {
+      "type": "string"
+    },
+    "idProdutosDuplicados": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "pattern": "^[a-zA-Z0-9]{16}$"
+      }
+    }
+  },
+  "additionalProperties": false
+}
