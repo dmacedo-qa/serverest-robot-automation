@@ -72,7 +72,7 @@ Stop everything with `docker compose down`. After changing code, add `--build` s
 rebuilt.
 
 A full run takes about 10 seconds, 6 of which are the expiry test waiting for a token to run
-out. Expected result today: 105 tests, 90 passed, 15 skipped (the known defects).
+out. Expected result today: 112 tests, 97 passed, 15 skipped (the known defects).
 
 ### Choosing what to run
 
@@ -92,7 +92,7 @@ docker compose run --rm tests --include known-defect tests      # only the open 
 | Execution | `smoke`, `regression` (every test) |
 | Type | `positive`, `negative`, `edge`, `contract`, `security`, `e2e` |
 | Priority | `priority:critical`, `priority:high`, `priority:medium`, `priority:low` |
-| Area | `auth`, `users`, `products`, `carts` (set by the folder) |
+| Area | `auth`, `users`, `products`, `carts`, `platform` (set by the folder) |
 | Status | `known-defect` |
 
 <details>
@@ -177,7 +177,7 @@ USR-10 Duplicate Email Is Rejected
 ## Status
 
 CI runs the smoke tests on every pull request and the full suite on every push to `main` and
-nightly, then publishes the report. 104 of the 127 planned cases are automated, chosen to cover every test type and all the critical
+nightly, then publishes the report. 111 of the 127 planned cases are automated, chosen to cover every test type and all the critical
 and high findings. The rest are being added area by area; the test plan marks which are done.
 
 ## Stack

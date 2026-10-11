@@ -13,6 +13,7 @@ from robot.api.types import Secret
 
 SENSITIVE_FIELDS = {"password", "authorization"}
 MASK = "***"
+MAX_LOGGED_BODY = 2000
 
 
 @library(scope="GLOBAL", auto_keywords=False)
@@ -62,7 +63,10 @@ def _masked_json(raw) -> str:
         data = json.loads(raw)
     except (TypeError, ValueError):
         return "<non-JSON body>"
-    return json.dumps(_mask(data), ensure_ascii=False, indent=2)
+    text = json.dumps(_mask(data), ensure_ascii=False, indent=2)
+    if len(text) > MAX_LOGGED_BODY:
+        return f"{text[:MAX_LOGGED_BODY]}... ({len(text)} characters, truncated)"
+    return text
 
 
 def _mask(data):

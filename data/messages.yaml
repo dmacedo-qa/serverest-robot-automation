@@ -39,6 +39,11 @@ MSG:
     purchase_cancelled: "Registro excluído com sucesso. Estoque dos produtos reabastecido"
     no_cart_for_user: "Não foi encontrado carrinho para esse usuário"
 
+  platform:
+    method_not_allowed: "Não é possível realizar"    # followed by "<METHOD> em <path>. Acesse ..."
+    malformed_json: "Adicione aspas em todos os valores. Para mais informações acesse a issue https://github.com/ServeRest/ServeRest/issues/225"
+    invalid_url: "Parâmetro de URL inválido. Verifique os caracteres especiais e tente novamente."
+
   field_rules:
     required: "é obrigatório"
     string: "deve ser uma string"

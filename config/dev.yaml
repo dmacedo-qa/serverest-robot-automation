@@ -2,6 +2,8 @@
 base_url: http://localhost:3000
 short_token_base_url: http://localhost:3001   # instance with 5 s tokens, used by TOK-06
 
+serverest_version: "3.2.2"   # must match the image tag in docker-compose.yml
+
 request_timeout: 10          # seconds per request
 verify_ssl: false
 data_locale: pt_BR
