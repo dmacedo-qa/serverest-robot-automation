@@ -9,6 +9,7 @@ configure = [
     "line-too-long.line_length=120",
     "too-many-calls-in-test-case.max_calls=20",
     "too-many-calls-in-keyword.max_calls=15",
+    "too-many-arguments.max_args=7",           # Send Request is the single HTTP entry point
 ]
 ignore = [
     "missing-doc-test-case",    # test name + test-plan ID are the documentation

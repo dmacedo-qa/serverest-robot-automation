@@ -10,7 +10,7 @@
 ## Summary
 
 127 test cases across 8 areas. Every expected result was checked against a running ServeRest 3.2.2,
-not copied from the documentation. 32 cases are automated today, including the critical and high
+not copied from the documentation. 41 cases are automated today, including the critical and high
 findings below; the *Automated* column in section 8 shows which.
 
 | Area | Positive | Negative | Edge | Contract | Security | Total |
@@ -171,26 +171,26 @@ Examples: `--include smoke`, `--include negative`, `--include cartsANDpriority:c
 | ID | Scenario | Expected result | Type | Priority | Automated |
 |---|---|---|:-:|:-:|:-:|
 | AUTH-01 | Registered user logs in | 200, message, `authorization` = `Bearer <JWT>` | P | Critical | Yes |
-| AUTH-02 | Admin logs in and uses the token on an admin route | 200, then `POST /produtos` → 201 | P | High |  |
-| AUTH-03 | Customer's token works on a protected route | `DELETE /carrinhos/cancelar-compra` → 200 | P | High |  |
-| AUTH-04 | Login accepts a form-urlencoded body | 200 and a token (undocumented but supported) | P | Low |  |
+| AUTH-02 | Admin logs in and uses the token on an admin route | 200, then `POST /produtos` → 201 | P | High | Yes |
+| AUTH-03 | Customer's token works on a protected route | `DELETE /carrinhos/cancelar-compra` → 200 | P | High | Yes |
+| AUTH-04 | Login accepts a form-urlencoded body | 200 and a token (undocumented but supported) | P | Low | Yes |
 | AUTH-05 | Wrong password | 401 `Email e/ou senha inválidos` | N | Critical | Yes |
 | AUTH-06 | Unknown email | 401 with the same message as AUTH-05, so accounts can't be enumerated | S | High | Yes |
 | AUTH-07 | Invalid login body: missing email, missing password, blank email, blank password, invalid email format, non-string password, unknown field | 400 with one message per invalid field | N | High | Yes |
-| AUTH-08 | Email in different case (`USER@...`) | 401: matching is exact (see DQ-01) | E | Low |  |
+| AUTH-08 | Email in different case (`USER@...`) | 401: matching is exact (see DQ-01) | E | Low | Yes |
 | TOK-01 | No `Authorization` header on a protected route | 401 `Token de acesso ausente...` | N | Critical | Yes |
 | TOK-02 | Malformed header: `Bearer` alone, `bearer <jwt>`, `<jwt>` without prefix, `Bearer abc`, `Basic dXNlcg==` | 401 | N | High | Yes |
 | TOK-03 | JWT signed with a different key | 401 | S | High | Yes |
 | TOK-04 | JWT with `alg: none` | 401 | S | High | Yes |
 | TOK-05 | JWT payload changed, original signature kept | 401 | S | High | Yes |
 | TOK-06 | Token after it expires (5 s instance) | Valid at 0 s, 401 at 6 s | N | High | Yes |
-| TOK-07 | Token of a user who was deleted | 401 | N | Medium |  |
-| TOK-08 | Token after the user's password changed | 401 | N | Medium |  |
-| TOK-09 | Admin demoted to customer: existing token on an admin route | 403 immediately (role is checked on every request) | N | High |  |
-| TOK-10 | User's name changed: existing token | Still valid (only email + password are bound to the token) | E | Low |  |
+| TOK-07 | Token of a user who was deleted | 401 | N | Medium | Yes |
+| TOK-08 | Token after the user's password changed | 401 | N | Medium | Yes |
+| TOK-09 | Admin demoted to customer: existing token on an admin route | 403 immediately (role is checked on every request) | N | High | Yes |
+| TOK-10 | User's name changed: existing token | Still valid (only email + password are bound to the token) | E | Low | Yes |
 | TOK-11 | Customer token on an admin route | 403 `Rota exclusiva para administradores` | N | Critical | Yes |
 | SEC-02 | JWT payload must not contain the password | Fails today: payload has `email` and `password` | S | High | Yes (known defect) |
-| SEC-08 | Security headers on every response | `X-Frame-Options`, `X-Content-Type-Options: nosniff`, `Strict-Transport-Security` present; `X-Powered-By` absent | S | Medium |  |
+| SEC-08 | Security headers on every response | `X-Frame-Options`, `X-Content-Type-Options: nosniff`, `Strict-Transport-Security` present; `X-Powered-By` absent | S | Medium | Yes |
 
 ### 8.2 Users
 
