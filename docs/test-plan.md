@@ -10,7 +10,7 @@
 ## Summary
 
 127 test cases across 8 areas. Every expected result was checked against a running ServeRest 3.2.2,
-not copied from the documentation. 65 cases are automated today, including the critical and high
+not copied from the documentation. 83 cases are automated today, including the critical and high
 findings below; the *Automated* column in section 8 shows which.
 
 | Area | Positive | Negative | Edge | Contract | Security | Total |
@@ -229,24 +229,24 @@ Examples: `--include smoke`, `--include negative`, `--include cartsANDpriority:c
 | ID | Scenario | Expected result | Type | Priority | Automated |
 |---|---|---|:-:|:-:|:-:|
 | PRD-01 | Admin creates a product; read it back by ID | 201, then GET returns exactly the sent data | P | Critical | Yes |
-| PRD-02 | List products | `quantidade` equals the length of `produtos` | P | Medium |  |
-| PRD-03 | Filters: `nome` (partial, case-insensitive), `descricao` (partial), `preco` (exact), `quantidade` (exact) | Only matching products | P | Low |  |
-| PRD-04 | Update a product with PUT | 200; GET shows the new values | P | High |  |
-| PRD-05 | Delete a product that isn't in a cart | 200, then GET → 400 `Produto não encontrado` | P | High |  |
-| PRD-06 | Optional `imagem` field | Stored (trimmed) and returned. Not in the Swagger (DRIFT-02) | P | Low |  |
+| PRD-02 | List products | `quantidade` equals the length of `produtos` | P | Medium | Yes |
+| PRD-03 | Filters: `nome` (partial, case-insensitive), `descricao` (partial), `preco` (exact), `quantidade` (exact) | Only matching products | P | Low | Yes |
+| PRD-04 | Update a product with PUT | 200; GET shows the new values | P | High | Yes |
+| PRD-05 | Delete a product that isn't in a cart | 200, then GET → 400 `Produto não encontrado` | P | High | Yes |
+| PRD-06 | Optional `imagem` field | Stored (trimmed) and returned. Not in the Swagger (DRIFT-02) | P | Low | Yes |
 | PRD-07 | Customer calls POST, PUT, DELETE | 403 `Rota exclusiva para administradores`; nothing changes | N | Critical | Yes |
 | PRD-08 | Anonymous calls POST, PUT, DELETE | 401; nothing changes | N | Critical | Yes |
-| PRD-09 | Duplicate name, on create and on PUT rename | 400 `Já existe produto com esse nome` | N | High |  |
-| PRD-10 | Invalid body: each field missing, blank `nome`/`descricao`, `preco` 0 / −1 / 1.5 / `"abc"`, `quantidade` −1 / 1.5, unknown field | 400 with the exact message per field | N | High |  |
-| PRD-11 | Delete a product that is in a cart | 400 with `idCarrinhos`; product still exists | N | High |  |
-| PRD-12 | GET by an unknown ID and by a malformed ID | 400 not found / 400 ID rule | N | Medium |  |
-| PRD-13 | Invalid filters: `preco=abc`, `preco=0`, `quantidade=-1`, unknown parameter | 400 with field message | N | Low |  |
+| PRD-09 | Duplicate name, on create and on PUT rename | 400 `Já existe produto com esse nome` | N | High | Yes |
+| PRD-10 | Invalid body: each field missing, blank `nome`/`descricao`, `preco` 0 / −1 / 1.5 / `"abc"`, `quantidade` −1 / 1.5, unknown field | 400 with the exact message per field | N | High | Yes |
+| PRD-11 | Delete a product that is in a cart | 400 with `idCarrinhos`; product still exists | N | High | Yes |
+| PRD-12 | GET by an unknown ID and by a malformed ID | 400 not found / 400 ID rule | N | Medium | Yes |
+| PRD-13 | Invalid filters: `preco=abc`, `preco=0`, `quantidade=-1`, unknown parameter | 400 with field message | N | Low | Yes |
 | PRD-14 | Boundaries: `preco` 1 ok, 9007199254740991 ok, 9007199254740993 rejected; `quantidade` 0 ok | Accepted / rejected with `preco não pode ser maior que 9007199254740991` | E | Medium | Yes |
-| PRD-15 | Name with surrounding spaces | Stored trimmed; `" X "` conflicts with `"X"` | E | Low |  |
-| PRD-16 | PUT keeping the product's own name | 200, not a false duplicate | E | Medium |  |
-| PRD-17 | PUT on an unknown ID | 201 with a new server-generated ID | E | Low |  |
-| PRD-18 | Delete an ID that doesn't exist | 200 `Nenhum registro excluído` | E | Low |  |
-| PRD-19 | Product with stock 0 | Created; can't be added to a cart (CRT-20) | E | Low |  |
+| PRD-15 | Name with surrounding spaces | Stored trimmed; `" X "` conflicts with `"X"` | E | Low | Yes |
+| PRD-16 | PUT keeping the product's own name | 200, not a false duplicate | E | Medium | Yes |
+| PRD-17 | PUT on an unknown ID | 201 with a new server-generated ID | E | Low | Yes |
+| PRD-18 | Delete an ID that doesn't exist | 200 `Nenhum registro excluído` | E | Low | Yes |
+| PRD-19 | Product with stock 0 | Created; can't be added to a cart (CRT-20) | E | Low | Yes |
 
 ### 8.4 Carts
 
@@ -317,10 +317,10 @@ show up in reports without blocking the pipeline.
 | ID | Expected rule | Observed on 3.2.2 | Type | Priority | Automated |
 |---|---|---|:-:|:-:|:-:|
 | DQ-01 | Email uniqueness ignores case | `ADM@x.com` and `adm@x.com` are separate accounts | N | Medium | Yes |
-| DQ-02 | Product name uniqueness ignores case | `Mouse X` and `MOUSE X` both accepted | N | Medium |  |
-| DQ-03 | `preco` must be a JSON number | `"10"` and `"1e2"` accepted and converted | N | Low |  |
+| DQ-02 | Product name uniqueness ignores case | `Mouse X` and `MOUSE X` both accepted | N | Medium | Yes (known defect) |
+| DQ-03 | `preco` must be a JSON number | `"10"` and `"1e2"` accepted and converted | N | Low | Yes (known defect) |
 | DQ-04 | User `nome` can't be blank | `"   "` accepted | N | Medium | Yes (known defect) |
-| DQ-05 | Product `nome` can't be blank | `"   "` accepted and stored as `""` | N | Medium |  |
+| DQ-05 | Product `nome` can't be blank | `"   "` accepted and stored as `""` | N | Medium | Yes (known defect) |
 | DQ-06 | Cart `quantidade` must be a JSON number | `"2"` accepted | N | Low |  |
 | DQ-07 | A cart can't contain the same product twice | `[A, B, A]` accepted: the cart holds 8 units of A (stock 5), and stock drops by only 4 | N | Critical | Yes |
 | DQ-08 | Stock never goes below what's actually sold | Consequence of DQ-07: concluding that cart sells 8 units while stock shows 1 | N | Critical |  |
