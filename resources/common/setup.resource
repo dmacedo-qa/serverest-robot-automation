@@ -22,16 +22,29 @@ Use Short Token Instance
     VAR    ${SESSION}    short-token    scope=TEST    # robocop: off=no-test-variable
 
 End API Session
-    [Documentation]    Deletes records created in suite setup, then closes the session.
+    [Documentation]    Deletes records created in suite setup, warns about anything this run
+    ...    left behind, then closes the session.
     Clean Up Test Data
+    Warn About Leftover Test Users
     Delete All Sessions
+
+Warn About Leftover Test Users
+    [Documentation]    Exit criterion: only ServeRest's seed data remains after a run.
+    ${prefix}=    Test Email Prefix
+    ${response}=    GET Users
+    ${leftovers}=    Evaluate    [u['email'] for u in $response.json()['usuarios'] if u['email'].startswith($prefix)]
+    IF    $leftovers
+        Log    ${{len($leftovers)}} test user(s) left behind: ${leftovers}    WARN
+    ELSE
+        Log    No test users left behind.
+    END
 
 Clean Up Test Data
     [Documentation]    Deletes what the current test (or suite) created: carts, then products,
     ...    then users. Best-effort: a failed delete is a warning and never changes the test result.
     @{items}=    Pop Cleanup Items
     IF    not ${CLEANUP_ENABLED}
-        Log    Cleanup disabled. Leaving ${{len($items)}} record(s) in place.    WARN
+        IF    $items    Log    Cleanup disabled. Leaving ${{len($items)}} record(s) in place.    WARN
         RETURN
     END
     FOR    ${item}    IN    @{items}

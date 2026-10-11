@@ -84,6 +84,11 @@ class DataFactory:
         }
 
     @keyword
+    def test_email_prefix(self) -> str:
+        """Returns the prefix shared by every email generated in this run (this process)."""
+        return f"qa.{self.run_id}."
+
+    @keyword
     def cart_items(self, *product_and_quantity) -> list[dict]:
         """Builds the ``produtos`` list of a cart from pairs: ``product_id  quantity  ...``."""
         if len(product_and_quantity) % 2:

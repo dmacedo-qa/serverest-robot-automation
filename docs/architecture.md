@@ -24,11 +24,11 @@ flowchart TD
 
 | Layer | Knows about | Example | Asserts? |
 |---|---|---|---|
-| **Test suite** | Business language only | `Customer Creates Cart With    ${products}` | Yes: the outcome of the scenario |
-| **Flow** | Which endpoints make up a business step | `Create Customer With Token` = generate user → `POST User` → `POST Login` | Only that setup steps succeeded (fail fast) |
-| **Verification** | How to prove a fact | `Product Stock Should Be    ${id}    8` | Yes, that is its only job |
-| **Endpoint keyword** | Path, method, payload shape, headers | `POST Product    ${payload}    ${token}` | **No.** Returns the response. |
-| **Library** | HTTP, data generation, config, cleanup | `Generate Product`, `Register Response For Cleanup` | No |
+| Test suite | Business language only | `Customer Creates Cart    ${token}    ${items}` | Yes: the outcome of the scenario |
+| Flow | Which endpoints make up a business step | `Create Customer With Token` = generate user → `POST User` → `POST Login` | Only that setup steps succeeded (fail fast) |
+| Verification | How to prove a fact | `Product Stock Should Be    ${id}    8` | Yes, that is its only job |
+| Endpoint keyword | Path, method, payload shape, headers | `POST Product    ${payload}    ${token}` | No. Returns the response. |
+| Library | HTTP, data generation, config, cleanup | `Generate Product`, `Register Response For Cleanup` | No |
 
 ### Why endpoint keywords never assert
 
@@ -93,38 +93,41 @@ Admin Creates Product
     RETURN    ${product}
 ```
 
-**Test** (`tests/carts/create_cart.robot`, Phase 5): reads like the scenario in the test plan.
+**Test** (`tests/carts/cart_lifecycle.robot`): reads like the scenario in the test plan.
 
 ```robotframework
 *** Test Cases ***
 CRT-01 Creating A Cart Reserves Stock And Calculates Totals
-    [Tags]    CRT-01    carts    smoke    regression
-    ${admin}=       Create Admin With Token
+    [Tags]    CRT-01    positive    priority:critical    smoke
+    ${admin}=    Create Admin With Token
     ${customer}=    Create Customer With Token
-    ${mouse}=       Admin Creates Product    ${admin}[token]    preco=100    quantidade=10
-    ${pad}=         Admin Creates Product    ${admin}[token]    preco=30     quantidade=5
+    ${mouse}=    Admin Creates Product    ${admin}[token]    preco=100    quantidade=10
+    ${pad}=    Admin Creates Product    ${admin}[token]    preco=30    quantidade=5
 
-    ${items}=    Cart Items    ${mouse}    2    ${pad}    1
-    ${cart}=     Customer Creates Cart    ${customer}[token]    ${items}
+    ${items}=    Cart Items    ${mouse}[_id]    2    ${pad}[_id]    1
+    ${cart_id}=    Customer Creates Cart    ${customer}[token]    ${items}
 
-    Cart Totals Should Be       ${cart}[_id]    preco_total=230    quantidade_total=3
-    Product Stock Should Be     ${mouse}[_id]    8
-    Product Stock Should Be     ${pad}[_id]      4
+    Cart Totals Should Be    ${cart_id}    preco_total=230    quantidade_total=3
+    Product Stock Should Be    ${mouse}[_id]    8
+    Product Stock Should Be    ${pad}[_id]    4
 ```
 
 ## 4. Cross-cutting components
 
 | Component | Where | Responsibility |
 |---|---|---|
-| **Config loader** | `libraries/config_loader.py` | Reads `config/<env>.yaml` and exposes values such as `${BASE_URL}` as Robot variables. Environment variables override YAML. The environment is chosen with `ENV` (default `dev`). |
-| **Data factory** | `libraries/data_factory.py` | Builds users and products with Faker, using defaults plus overrides. Unique values use the run ID and the pabot worker ID. Seeded and replayable with `DATA_SEED`. |
-| **Cleanup registry** | `libraries/cleanup_registry.py` | Records what each test (or suite setup) created, as soon as the API returns an `_id`. Teardown deletes in dependency order: carts → products → users. Best-effort: failures become warnings. |
-| **HTTP helpers** | `libraries/http_helpers.py` | Builds auth headers, reveals `Secret` values only inside `Send Request`, and logs a masked summary of each exchange |
-| **Record assertions** | `libraries/record_assertions.py` | Compares a record read from the API with the payload that created it, without ever printing secrets |
-| **Token handling** | `resources/flows/accounts.resource` | Logs in per persona and keeps the token as a `Secret`. Re-login before the 600 s expiry is planned for when a suite runs long enough to need it. |
-| **Messages** | `data/messages.yaml` | Every expected ServeRest message, verbatim, under an English key, for example `users.email_taken: "Este email já está sendo usado"` |
-| **Negative data sets** | `data/negative/*.yaml` | Invalid payloads and their expected field errors. They drive data-driven tests (`[Template]`). |
-| **Session setup** | `resources/common/setup.resource`, used by `tests/__init__.robot` | Creates the `serverest` HTTP session once per run (once per process under pabot), logs the run ID and seed, and runs the cleanup teardown after every test |
+| Config loader | `libraries/config_loader.py` | Reads `config/<env>.yaml` and exposes values such as `${BASE_URL}` as Robot variables. Environment variables override YAML. The environment is chosen with `ENV` (default `dev`). |
+| Data factory | `libraries/data_factory.py` | Builds users and products with Faker, using defaults plus overrides. Unique values use the run ID and the pabot worker ID. Seeded and replayable with `DATA_SEED`. |
+| Cleanup registry | `libraries/cleanup_registry.py` | Records what each test (or suite setup) created, as soon as the API returns an `_id`. Teardown deletes in dependency order: carts → products → users. Best-effort: failures become warnings. |
+| HTTP helpers | `libraries/http_helpers.py` | Builds auth headers, reveals `Secret` values only inside `Send Request`, and logs a masked summary of each exchange |
+| Record assertions | `libraries/record_assertions.py` | Compares a record read from the API with the payload that created it, without ever printing secrets |
+| Token handling | `resources/flows/accounts.resource` | Logs in per persona and keeps the token as a `Secret`. A full run takes seconds, well inside the 600 s token lifetime. |
+| Token forgery | `libraries/jwt_tools.py` | Builds invalid variants of a real token (other key, `alg: none`, tampered payload) for TOK-03 to TOK-05 |
+| Contract checks | `libraries/schema_assertions.py`, `data/schemas/*.json` | Validates responses against strict JSON Schemas (Draft 2020-12) |
+| Tag policy | `libraries/tag_policy.py` | Pre-run modifier: fails any test without exactly one type tag, one priority tag, and an ID |
+| Messages | `data/messages.yaml` | Every expected ServeRest message, verbatim, under an English key, for example `users.email_taken: "Este email já está sendo usado"` |
+| Negative data sets | the test files | Invalid inputs are `[Template]` rows next to the test that uses them, with the expected rule as a key of `MSG.field_rules` |
+| Session setup | `resources/common/setup.resource`, used by `tests/__init__.robot` | Creates the `serverest` HTTP session once per run (once per process under pabot), logs the run ID and seed, runs the cleanup teardown after every test, and warns at the end if any test user was left behind |
 
 ### Sensitive values in logs
 
@@ -193,11 +196,11 @@ serverest-robot-automation/
 │   └── robot.args             # shared robot command-line options
 ├── data/
 │   ├── messages.yaml          # expected ServeRest messages (verbatim)
-│   └── negative/              # invalid payload sets for data-driven tests
+│   └── schemas/               # JSON Schemas for contract tests
 ├── docs/
 │   ├── test-plan.md
 │   └── architecture.md
-├── libraries/                 # custom Python: config, data factory, cleanup, tag policy
+├── libraries/                 # Python: config, data factory, cleanup, HTTP, JWT, schemas, tag policy
 ├── resources/
 │   ├── main.resource          # the single import used by test files
 │   ├── api/                   # endpoint keywords: login, users, products, carts
@@ -210,14 +213,12 @@ serverest-robot-automation/
 │   ├── users/                 # USR-*, SEC-01/03/04/07, DQ-01/04/09/10
 │   ├── products/              # PRD-*, DQ-02/03/05
 │   ├── carts/                 # CRT-*, DQ-06/07/08
-│   ├── platform/              # PLT-*
 │   ├── contract/              # CON-*, DRIFT-*
 │   └── e2e/                   # E2E-*
 ├── Dockerfile                 # test-runner image
 ├── docker-compose.yml         # ServeRest + test runner
 ├── requirements.txt
-├── pyproject.toml             # Robocop lint and format settings
-└── robot.toml                 # lets the RobotCode IDE extension resolve libraries and config
+└── pyproject.toml             # Robocop lint and format settings
 ```
 
 **Folder = area, tag = type.** A security or data-quality finding lives in the folder of the
