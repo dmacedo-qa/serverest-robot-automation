@@ -46,6 +46,7 @@ MSG:
     invalid_email: "deve ser um email válido"
     boolean_string: "deve ser 'true' ou 'false'"
     positive_number: "deve ser um número positivo"
+    number: "deve ser um número"
     integer: "deve ser um inteiro"
     min_zero: "deve ser maior ou igual a 0"
     not_allowed: "não é permitido"
