@@ -15,12 +15,12 @@ Test Tags           users    regression
 *** Test Cases ***
 USR-01 New Customer Is Created And Retrievable By Id
     [Documentation]    A non-admin user is created, and GET by ID returns exactly the data sent.
-    [Tags]    USR-01    smoke
+    [Tags]    USR-01    positive    priority:critical    smoke
     New User Should Be Created And Retrievable    administrador=false
 
 USR-01 New Admin Is Created And Retrievable By Id
     [Documentation]    An admin user is created, and GET by ID returns exactly the data sent.
-    [Tags]    USR-01
+    [Tags]    USR-01    positive    priority:critical
     New User Should Be Created And Retrievable    administrador=true
 
 

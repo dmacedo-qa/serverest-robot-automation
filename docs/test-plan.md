@@ -137,6 +137,24 @@ While a cart is active, its user can't be deleted, and none of its products can 
 - No data is left behind: only ServeRest's seed records remain after a full run.
 - Reports (`report.html`, `log.html`) are published as CI artifacts.
 
+### Tags
+
+Every test carries tags from each group below, so any slice of the suite can be run on its own.
+A pre-run check (`libraries/tag_policy.py`) **fails any test that is missing its type, priority,
+or ID tag**, so a test can't silently escape a filter.
+
+| Group | Tags | Rule |
+|---|---|---|
+| Execution | `smoke`, `regression` | Every test is `regression`. `smoke` marks the critical path for PR checks. |
+| Type | `positive`, `negative`, `edge`, `contract`, `security`, `e2e` | Exactly one, matching the Type column in section 8 |
+| Priority | `priority:critical`, `priority:high`, `priority:medium`, `priority:low` | Exactly one, matching the Priority column |
+| Area | `auth`, `users`, `products`, `carts`, `platform` | Set per suite |
+| Status | `known-defect` | The test asserts a rule ServeRest breaks today. Reported as **SKIP**, so it never blocks a run. |
+| ID | `AUTH-01`, `CRT-12`, … | Traceability from the report back to this plan. Hidden from tag statistics. |
+
+Examples: `--include smoke`, `--include negative`, `--include cartsANDpriority:critical`,
+`--include known-defect` (all open findings), `--exclude known-defect` (only passing behavior).
+
 ---
 
 ## 8. Test cases

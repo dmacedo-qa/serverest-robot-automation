@@ -193,20 +193,20 @@ serverest-robot-automation/
 ├── docs/
 │   ├── test-plan.md
 │   └── architecture.md
-├── libraries/                 # custom Python: config, data factory, cleanup
+├── libraries/                 # custom Python: config, data factory, cleanup, tag policy
 ├── resources/
 │   ├── api/                   # endpoint keywords: login, users, products, carts
 │   ├── flows/                 # business keywords
 │   ├── verifications/         # assertion keywords
 │   └── common/                # session setup, teardown, shared helpers
 ├── tests/
-│   ├── auth/
-│   ├── users/
-│   ├── products/
-│   ├── carts/
-│   ├── e2e/
-│   ├── security/              # SEC-* and DQ-* (known-defect)
-│   └── contract/
+│   ├── auth/                  # AUTH-*, TOK-*, SEC-02, SEC-08
+│   ├── users/                 # USR-*, SEC-01/03/04/07, DQ-01/04/09/10
+│   ├── products/              # PRD-*, DQ-02/03/05
+│   ├── carts/                 # CRT-*, DQ-06/07/08
+│   ├── platform/              # PLT-*
+│   ├── contract/              # CON-*, DRIFT-*
+│   └── e2e/                   # E2E-*
 ├── Dockerfile                 # test-runner image
 ├── docker-compose.yml         # ServeRest + test runner
 ├── requirements.txt
@@ -214,8 +214,10 @@ serverest-robot-automation/
 └── robot.toml                 # lets the RobotCode IDE extension resolve libraries and config
 ```
 
-Tests are grouped by **functional area**, not by layer, because the whole suite is API. Tags
-(`smoke`, `negative`, `e2e`, …) cut across folders.
+**Folder = area, tag = type.** A security or data-quality finding lives in the folder of the
+functionality it affects (SEC-01, passwords in the user listing, is in `tests/users/`), so everything
+about one area is in one place. Type, priority, and execution tags (`negative`, `priority:high`,
+`smoke`, …) cut across folders, and `libraries/tag_policy.py` makes sure every test has them.
 
 ## 8. Naming conventions
 

@@ -15,7 +15,7 @@ Test Tags           auth    regression
 *** Test Cases ***
 AUTH-01 Registered User Logs In And Receives A Bearer Token
     [Documentation]    A registered user logs in with valid credentials and receives a JWT.
-    [Tags]    AUTH-01    smoke
+    [Tags]    AUTH-01    positive    priority:critical    smoke
     ${user}=    Register User
 
     ${response}=    POST Login    ${user}[email]    ${user}[password]

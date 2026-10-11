@@ -3,13 +3,20 @@
 --outputdir results
 --pythonpath .
 --variablefile libraries/config_loader.py
+--prerunmodifier libraries/tag_policy.py
 --loglevel DEBUG:INFO
+
+# Tests asserting a defect that ServeRest has today: reported as SKIP, never block the run.
 --skiponfailure known-defect
---tagstatexclude AUTH-*
---tagstatexclude USR-*
---tagstatexclude PRD-*
---tagstatexclude CRT-*
---tagstatexclude E2E-*
---tagstatexclude CON-*
---tagstatexclude SEC-*
---tagstatexclude DQ-*
+
+# Report: hide per-test ID tags (USR-01, DRIFT-04, ...) from tag statistics, and describe the rest.
+--tagstatexclude *-??
+--tagdoc smoke:Critical-path checks, run on every pull request
+--tagdoc regression:Full suite, run nightly
+--tagdoc positive:Valid input, expected success
+--tagdoc negative:Invalid input or forbidden action, expected error
+--tagdoc edge:Boundary values and unusual but valid situations
+--tagdoc contract:Response shape matches the JSON Schema and the Swagger
+--tagdoc security:Access control, tokens, and data exposure
+--tagdoc e2e:Multi-step customer journey
+--tagdoc known-defect:Asserts the correct rule, which ServeRest 3.2.2 breaks (see test plan, section 9)

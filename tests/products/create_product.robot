@@ -16,7 +16,7 @@ Test Tags           products    regression
 *** Test Cases ***
 PRD-01 Admin Creates A Product That Is Retrievable By Id
     [Documentation]    An admin creates a product, and GET by ID returns exactly the data sent.
-    [Tags]    PRD-01    smoke
+    [Tags]    PRD-01    positive    priority:critical    smoke
     ${admin}=    Create Admin With Token
     ${product}=    Generate Product
 
