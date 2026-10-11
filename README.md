@@ -17,6 +17,8 @@ security, end-to-end), the test design behind them, and the defects found.
     check. A cart holding 8 units was accepted for a product with only 5 in stock.
   - **Password search:** `GET /usuarios?password=...` finds users by partial password match, with no
     authentication.
+
+  All findings, with steps to reproduce: [test plan, section 9](docs/test-plan.md#9-findings).
 - **A layered framework**: tests → business flows → endpoint keywords → libraries.
   See [architecture](docs/architecture.md).
 - **Test data that cleans up after itself.** Every test creates its own users and products and
@@ -118,8 +120,9 @@ The test image is built on the first run. After changing the code, add `--build`
 
 ### Run a subset with tags
 
-Every test is tagged by execution level, type, priority, and area. A check fails any test that
-is missing its type or priority tag, so filters never skip a test by accident.
+Every test is tagged by execution level, type, priority, and area. A pre-run check
+(`libraries/tag_policy.py`) fails any test that is missing its type, priority, or ID tag, so
+filters never skip a test by accident.
 
 | To run | Command |
 |---|---|
@@ -132,9 +135,18 @@ is missing its type or priority tag, so filters never skip a test by accident.
 | Combined | `docker compose run --rm tests --include cartsANDnegative tests` |
 | Open defects only | `docker compose run --rm tests --include known-defect tests` |
 
-Tags in each group: **execution** `smoke` `regression` · **type** `positive` `negative` `edge`
-`contract` `security` `e2e` · **priority** `priority:critical` `priority:high` `priority:medium`
-`priority:low` · **area** `auth` `users` `products` `carts` `platform` · **status** `known-defect`
+| Group | Tags | Where it comes from |
+|---|---|---|
+| Execution | `smoke`, `regression` | `regression` is automatic (`tests/__init__.robot`). `smoke` is set on the test. |
+| Type | `positive`, `negative`, `edge`, `contract`, `security`, `e2e` | On the test. Exactly one, required. |
+| Priority | `priority:critical`, `priority:high`, `priority:medium`, `priority:low` | On the test. Exactly one, required. |
+| Area | `auth`, `users`, `products`, `carts`, `platform` | Automatic: the folder's `__init__.robot` |
+| Status | `known-defect` | On the test. Shown as SKIP, never blocks a run. |
+| ID | `AUTH-01`, `CRT-12`, … | On the test. Required. Links the report to the test plan. |
+
+Only 3 cases are automated so far, all positive. Filters for types that have no automated tests
+yet (for example `--include negative`) stop with *"contains no tests matching tag"* until those
+cases are added.
 
 <details>
 <summary>Run without Docker for the tests (Python 3.13)</summary>
@@ -151,34 +163,94 @@ robot --argumentfile config/robot.args tests/                         # everythi
 robot --argumentfile config/robot.args --include smoke tests/         # smoke only
 pabot --processes 4 --argumentfile config/robot.args tests/           # in parallel
 robot --argumentfile config/robot.args --variable DATA_SEED:81714172 tests/   # replay a run's data
+robocop check resources tests                                         # lint
 ```
 
 The virtual environment must be active for pabot, because it starts its workers with the
 `python` on the `PATH`.
 </details>
 
+## Project map
+
+How a test reaches the API. Each layer only talks to the one below it:
+
+```mermaid
+flowchart TD
+    T["<b>Test suites</b> · tests/&lt;area&gt;/*.robot<br/>readable scenarios + assertions"]
+    M["<b>main.resource</b><br/>the single import of every test file"]
+    F["<b>Flows</b> · resources/flows<br/>'Create Admin With Token', 'Admin Creates Product'"]
+    V["<b>Verifications</b> · resources/verifications<br/>'User Should Exist With Data'"]
+    A["<b>Endpoint keywords</b> · resources/api<br/>one HTTP call each, never assert"]
+    H["<b>Send Request</b> · resources/common/http.resource<br/>the only HTTP entry point, masks secrets"]
+    L["<b>Libraries</b> · RequestsLibrary + libraries/*.py<br/>data factory, cleanup registry, config"]
+    T --> M --> F & V & A
+    F --> A
+    V --> A
+    A --> H --> L
+```
+
+Full design rules and an example across all layers: [docs/architecture.md](docs/architecture.md).
+
 ## Project structure
 
 ```
-docs/            test plan and architecture
-tests/           test suites, one folder per area; __init__.robot files hold the shared setup and tags
-resources/
-  main.resource  single import used by every test file
-  api/           one keyword per endpoint call (no assertions)
-  flows/         business steps built from endpoint keywords
-  verifications/ assertion keywords
-  common/        HTTP entry point, setup and teardown
-libraries/       Python: config loader, test data factory, cleanup registry, HTTP helpers, tag policy
-data/            expected API messages
-config/          environment settings and shared Robot Framework options
+serverest-robot-automation/
+├── tests/
+│   ├── __init__.robot         # for every suite: HTTP session, cleanup after each test, `regression` tag
+│   ├── auth/                  # each area folder has an __init__.robot that sets its area tag
+│   ├── users/
+│   └── products/              # carts/, platform/, contract/, e2e/ are added with their tests
+├── resources/
+│   ├── main.resource          # single import used by every test file
+│   ├── api/                   # endpoint keywords: login, users, products, carts (no assertions)
+│   ├── flows/                 # business steps built from endpoint keywords
+│   ├── verifications/         # assertion keywords
+│   └── common/                # HTTP entry point (secret masking), setup and teardown
+├── libraries/                 # Python: config loader, data factory, cleanup registry, HTTP helpers, tag policy
+├── data/messages.yaml         # every expected API message, verbatim
+├── config/
+│   ├── dev.yaml, ci.yaml      # environment settings (URL, timeouts)
+│   └── robot.args             # shared robot options: output, tag policy, known-defect handling
+├── docs/                      # test plan and architecture
+├── Dockerfile                 # test-runner image
+├── docker-compose.yml         # ServeRest (pinned) + test runner
+├── requirements.txt           # pinned Python dependencies
+├── pyproject.toml             # Robocop lint settings
+└── robot.toml                 # IDE support (RobotCode extension)
 ```
+
+## Add a new test
+
+1. Pick the area folder in `tests/` that matches the test-plan ID (USR → `users/`, CRT → `carts/`).
+   A new area folder needs a two-line `__init__.robot` with its `Test Tags`.
+2. Import only `main.resource`. Setup, cleanup, and the area tag are inherited:
+
+   ```robotframework
+   *** Settings ***
+   Documentation       Users: duplicate email.
+   Resource            ../../resources/main.resource
+
+   *** Test Cases ***
+   USR-10 Duplicate Email Is Rejected
+       [Tags]    USR-10    negative    priority:critical
+       ${user}=         Register User
+       ${duplicate}=    Generate User    email=${user}[email]
+       ${response}=     POST User    ${duplicate}
+       Register Response For Cleanup    user    ${response}    # in case the API wrongly accepts it
+
+       Status Should Be    400    ${response}
+       Response Message Should Be    ${response}    ${MSG.users.email_taken}
+   ```
+
+3. Tag it with its ID, exactly one type, and exactly one priority, matching the test plan.
+   Run `robocop check resources tests` before committing.
 
 ## Status
 
 | | |
 |---|---|
 | Test plan | ✅ Complete: 127 cases |
-| Framework | ✅ Data factory, cleanup, secret masking, parallel runs, Docker runner |
+| Framework | ✅ Data factory, cleanup, secret masking, tag policy, parallel runs, Docker runner |
 | Automated | 3 of 127 cases (AUTH-01, USR-01, PRD-01). The rest are being added area by area. |
 | CI | Next: GitHub Actions with smoke tests on every PR and the full suite nightly |
 
