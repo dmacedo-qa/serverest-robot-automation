@@ -1,16 +1,8 @@
-# Local development: ServeRest from `docker compose up -d` or `npx serverest@3.2.2 --nodoc`.
+# Local development: ServeRest from `docker compose up -d`.
 base_url: http://localhost:3000
-short_token_base_url: http://localhost:3001   # only for AUTH-04 (docker compose --profile expiry)
+short_token_base_url: http://localhost:3001   # instance with 5 s tokens, used by TOK-06
 
-# HTTP
 request_timeout: 10          # seconds per request
-verify_ssl: false            # local HTTP only
-
-# Auth
-token_ttl: 600               # must match the ServeRest --timeout (default 600)
-short_token_ttl: 5           # must match the short-token instance in docker-compose.yml
-token_refresh_margin: 60     # refresh cached tokens this many seconds before expiry
-
-# Test data
+verify_ssl: false
 data_locale: pt_BR
-cleanup_enabled: true        # set to false to inspect leftover data after a failure
+cleanup_enabled: true        # false keeps test data after the run, for debugging

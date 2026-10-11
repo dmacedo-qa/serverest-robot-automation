@@ -3,7 +3,7 @@
 --outputdir results
 --pythonpath .
 --variablefile libraries/config_loader.py
---prerunmodifier libraries/tag_policy.py
+--prerunmodifier libraries.tag_policy.TagPolicy
 --loglevel DEBUG:INFO
 
 # Tests asserting a defect that ServeRest has today: reported as SKIP, never block the run.

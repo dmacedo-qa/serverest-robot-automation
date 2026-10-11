@@ -1,16 +1,8 @@
-# GitHub Actions: ServeRest runs as a Docker service next to the runner.
+# CI and the Docker test runner (URLs are overridden by docker-compose.yml).
 base_url: http://localhost:3000
-short_token_base_url: http://localhost:3001
+short_token_base_url: http://localhost:3001   # instance with 5 s tokens, used by TOK-06
 
-# HTTP. Shared CI runners are slower, so allow more time per request.
-request_timeout: 20
+request_timeout: 20          # seconds per request
 verify_ssl: false
-
-# Auth
-token_ttl: 600
-short_token_ttl: 5
-token_refresh_margin: 60
-
-# Test data
 data_locale: pt_BR
-cleanup_enabled: true
+cleanup_enabled: true        # false keeps test data after the run, for debugging

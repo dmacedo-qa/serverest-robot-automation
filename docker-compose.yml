@@ -23,19 +23,20 @@ services:
     ports:
       - "3000:3000"
 
-  # Second instance whose tokens expire after 5 s, used only by the token-expiry test (TOK-06).
+  # Same version with 5 s tokens, so the token-expiry test (TOK-06) doesn't wait 10 minutes.
   serverest-short-token:
     <<: *serverest
     command: ["--nodoc", "--timeout", "5"]
     ports:
       - "3001:3000"
-    profiles: ["expiry"]
 
   # Test runner. Starts once ServeRest is healthy and writes reports to ./results.
   tests:
     build: .
     depends_on:
       serverest:
+        condition: service_healthy
+      serverest-short-token:
         condition: service_healthy
     environment:
       ENV: ci

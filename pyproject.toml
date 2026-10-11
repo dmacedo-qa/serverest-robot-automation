@@ -1,13 +1,19 @@
 [project]
 name = "serverest-robot-automation"
-version = "0.1.0"
-description = "Robot Framework API test automation for ServeRest"
+version = "1.0.0"
+description = "Robot Framework API tests for ServeRest"
 requires-python = ">=3.13"
 
 [tool.robocop.lint]
 configure = [
     "line-too-long.line_length=120",
-    "inconsistent-assignment.assignment_sign_type=equal_sign",
+    "too-many-calls-in-test-case.max_calls=20",
+    "too-many-calls-in-keyword.max_calls=15",
+]
+ignore = [
+    "missing-doc-test-case",    # test name + test-plan ID are the documentation
+    "inconsistent-assignment",  # VAR has no assignment sign by design
+    "could-be-test-tags",       # tags stay on each test so the tag policy is visible
 ]
 
 [tool.robocop.format]

@@ -1,5 +1,0 @@
-# Settings for the RobotCode IDE extension (VS Code / PyCharm), so the editor resolves
-# custom libraries and config variables. Command-line runs use config/robot.args.
-python-path = ["."]
-variable-files = ["libraries/config_loader.py"]
-output-dir = "results"

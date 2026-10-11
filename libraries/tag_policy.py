@@ -5,7 +5,7 @@ A test that breaks the rule fails immediately with a message saying what's missi
 test can never silently escape filters such as ``--include negative``.
 
 Usage (already in config/robot.args):
-    --prerunmodifier libraries/tag_policy.py
+    --prerunmodifier libraries.tag_policy.TagPolicy
 """
 
 import re
@@ -17,7 +17,7 @@ PRIORITY_TAGS = {"priority:critical", "priority:high", "priority:medium", "prior
 ID_PATTERN = re.compile(r"^(AUTH|TOK|USR|PRD|CRT|PLT|CON|SEC|DQ|DRIFT|E2E)-\d{2}$")
 
 
-class tag_policy(SuiteVisitor):
+class TagPolicy(SuiteVisitor):
 
     def visit_test(self, test):
         tags = {str(tag).lower() for tag in test.tags}
