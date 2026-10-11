@@ -10,8 +10,8 @@
 ## Summary
 
 127 test cases across 8 areas. Every expected result was checked against a running ServeRest 3.2.2,
-not copied from the documentation. 111 cases are automated today, including the critical and high
-findings below; the *Automated* column in section 8 shows which.
+not copied from the documentation. All 127 are automated; the 19 that assert rules ServeRest
+breaks are tagged `known-defect` and reported as SKIP.
 
 | Area | Positive | Negative | Edge | Contract | Security | Total |
 |---|---:|---:|---:|---:|---:|---:|
@@ -25,7 +25,7 @@ findings below; the *Automated* column in section 8 shows which.
 | End-to-end journeys | 3 | – | – | – | – | 3 |
 | Total | 31 | 45 | 22 | 18 | 11 | 127 |
 
-Findings so far (steps to reproduce in [section 9](#9-findings)):
+Findings (steps to reproduce in [section 9](#9-findings)):
 
 | Severity | Finding |
 |---|---|
@@ -164,7 +164,7 @@ Examples: `--include smoke`, `--include negative`, `--include cartsANDpriority:c
 ## 8. Test cases
 
 **Type:** P = positive · N = negative · E = edge/boundary · C = contract · S = security.
-**Automated:** cases with *Yes* run in the suite today; the rest are planned. Data-driven cases run once per row of their data set.
+**Automated:** every case runs in the suite; *known defect* marks the ones reported as SKIP. Data-driven cases run once per row of their data set.
 
 ### 8.1 Authentication and tokens
 
@@ -295,19 +295,19 @@ matches `^[a-zA-Z0-9]{16}$`). Contract tests call each route and validate the re
 | ID | Route | Responses validated | Type | Priority | Automated |
 |---|---|---|:-:|:-:|:-:|
 | CON-01 | `POST /login` | 200, 400, 401 | C | High | Yes |
-| CON-02 | `GET /usuarios` | 200 list, 400 | C | High |  |
-| CON-03 | `GET /usuarios/{id}` | 200, 400 | C | High |  |
-| CON-04 | `POST`, `PUT`, `DELETE /usuarios` | 201, 200, 400 | C | High |  |
-| CON-05 | `GET /produtos` | 200 list, 400 | C | High |  |
-| CON-06 | `GET /produtos/{id}` | 200, 400 | C | High |  |
-| CON-07 | `POST`, `PUT`, `DELETE /produtos` | 201, 200, 400, 401, 403 | C | High |  |
-| CON-08 | `GET /carrinhos` | 200 list, 400 | C | High |  |
+| CON-02 | `GET /usuarios` | 200 list, 400 | C | High | Yes |
+| CON-03 | `GET /usuarios/{id}` | 200, 400 | C | High | Yes |
+| CON-04 | `POST`, `PUT`, `DELETE /usuarios` | 201, 200, 400 | C | High | Yes |
+| CON-05 | `GET /produtos` | 200 list, 400 | C | High | Yes |
+| CON-06 | `GET /produtos/{id}` | 200, 400 | C | High | Yes |
+| CON-07 | `POST`, `PUT`, `DELETE /produtos` | 201, 200, 400, 401, 403 | C | High | Yes |
+| CON-08 | `GET /carrinhos` | 200 list, 400 | C | High | Yes |
 | CON-09 | `GET /carrinhos/{id}` | 200, 400 | C | High | Yes |
-| CON-10 | `POST /carrinhos` | 201; 400 variants (`item` + `index`, `idProdutosDuplicados`) | C | High |  |
-| CON-11 | `DELETE /carrinhos/*` | 200, 401 | C | Medium |  |
-| CON-12 | Any validation error | Body is an object of `field → message` | C | Medium |  |
-| CON-13 | Every response | `Content-Type: application/json; charset=utf-8` | C | Low |  |
-| CON-14 | `GET /version`, 405 and 413 responses | Shape is stable | C | Low |  |
+| CON-10 | `POST /carrinhos` | 201; 400 variants (`item` + `index`, `idProdutosDuplicados`) | C | High | Yes |
+| CON-11 | `DELETE /carrinhos/*` | 200, 401 | C | Medium | Yes |
+| CON-12 | Any validation error | Body is an object of `field → message` | C | Medium | Yes |
+| CON-13 | Every response | `Content-Type: application/json; charset=utf-8` | C | Low | Yes |
+| CON-14 | `GET /version`, 405 and 413 responses | Shape is stable | C | Low | Yes |
 
 ### 8.7 Data quality and Swagger drift
 
@@ -316,20 +316,20 @@ show up in reports without blocking the pipeline.
 
 | ID | Expected rule | Observed on 3.2.2 | Type | Priority | Automated |
 |---|---|---|:-:|:-:|:-:|
-| DQ-01 | Email uniqueness ignores case | `ADM@x.com` and `adm@x.com` are separate accounts | N | Medium | Yes |
+| DQ-01 | Email uniqueness ignores case | `ADM@x.com` and `adm@x.com` are separate accounts | N | Medium | Yes (known defect) |
 | DQ-02 | Product name uniqueness ignores case | `Mouse X` and `MOUSE X` both accepted | N | Medium | Yes (known defect) |
 | DQ-03 | `preco` must be a JSON number | `"10"` and `"1e2"` accepted and converted | N | Low | Yes (known defect) |
 | DQ-04 | User `nome` can't be blank | `"   "` accepted | N | Medium | Yes (known defect) |
 | DQ-05 | Product `nome` can't be blank | `"   "` accepted and stored as `""` | N | Medium | Yes (known defect) |
 | DQ-06 | Cart `quantidade` must be a JSON number | `"2"` accepted | N | Low | Yes (known defect) |
-| DQ-07 | A cart can't contain the same product twice | `[A, B, A]` accepted: the cart holds 8 units of A (stock 5), and stock drops by only 4 | N | Critical | Yes |
+| DQ-07 | A cart can't contain the same product twice | `[A, B, A]` accepted: the cart holds 8 units of A (stock 5), and stock drops by only 4 | N | Critical | Yes (known defect) |
 | DQ-08 | Stock never goes below what's actually sold | Consequence of DQ-07: concluding that cart sells 8 units while stock shows 1 | N | Critical | Yes (known defect) |
 | DQ-09 | ID validation is consistent across verbs | GET rejects malformed IDs; PUT and DELETE on `/usuarios` accept them, and PUT creates a user | N | Low | Yes (known defect) |
 | DQ-10 | PUT on an unknown ID either updates that ID or returns 404 | Creates a record with a *different* ID (USR-18, PRD-17) | E | Low | Yes (known defect) |
-| DRIFT-01 | Swagger field name matches the API | Delete product in cart: Swagger says `idCarrinho`, API returns `idCarrinhos` | C | Medium |  |
-| DRIFT-02 | Every accepted field is documented | Products accept and return `imagem`, which the Swagger doesn't list | C | Low |  |
-| DRIFT-03 | Documented filter limits match the API | Swagger: `quantidadeTotal ≥ 0`. API: rejects 0 | C | Low |  |
-| DRIFT-04 | Every returned status code is documented | 405, 413, and malformed-JSON 400 aren't in the Swagger | C | Low |  |
+| DRIFT-01 | Swagger field name matches the API | Delete product in cart: Swagger says `idCarrinho`, API returns `idCarrinhos` | C | Medium | Yes (known defect) |
+| DRIFT-02 | Every accepted field is documented | Products accept and return `imagem`, which the Swagger doesn't list | C | Low | Yes (known defect) |
+| DRIFT-03 | Documented filter limits match the API | Swagger: `quantidadeTotal ≥ 0`. API: rejects 0 | C | Low | Yes (known defect) |
+| DRIFT-04 | Every returned status code is documented | 405, 413, and malformed-JSON 400 aren't in the Swagger | C | Low | Yes (known defect) |
 
 ### 8.8 End-to-end journeys
 

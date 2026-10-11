@@ -10,6 +10,7 @@ configure = [
     "too-many-calls-in-test-case.max_calls=20",
     "too-many-calls-in-keyword.max_calls=15",
     "too-many-arguments.max_args=7",           # Send Request is the single HTTP entry point
+    "too-long-test-case.max_len=25",           # contract tests check every response of one route
 ]
 ignore = [
     "missing-doc-test-case",    # test name + test-plan ID are the documentation

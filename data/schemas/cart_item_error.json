@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "POST /carrinhos 400: problem with one item",
+  "type": "object",
+  "required": [
+    "message",
+    "item"
+  ],
+  "properties": {
+    "message": {
+      "type": "string"
+    },
+    "item": {
+      "type": "object",
+      "required": [
+        "idProduto",
+        "quantidade",
+        "index"
+      ],
+      "properties": {
+        "idProduto": {
+          "type": "string"
+        },
+        "quantidade": {
+          "type": "integer"
+        },
+        "quantidadeEstoque": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "index": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

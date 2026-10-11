@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Product record (GET /produtos/{id} 200)",
+  "type": "object",
+  "required": [
+    "nome",
+    "preco",
+    "descricao",
+    "quantidade",
+    "_id"
+  ],
+  "properties": {
+    "nome": {
+      "type": "string"
+    },
+    "preco": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "descricao": {
+      "type": "string"
+    },
+    "quantidade": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "imagem": {
+      "type": "string"
+    },
+    "_id": {
+      "type": "string",
+      "pattern": "^[a-zA-Z0-9]{16}$"
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "DELETE /usuarios/{id} 400: user has a cart",
+  "type": "object",
+  "required": [
+    "message",
+    "idCarrinho"
+  ],
+  "properties": {
+    "message": {
+      "type": "string"
+    },
+    "idCarrinho": {
+      "type": "string",
+      "pattern": "^[a-zA-Z0-9]{16}$"
+    }
+  },
+  "additionalProperties": false
+}

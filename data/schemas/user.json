@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "User record (GET /usuarios/{id} 200)",
+  "type": "object",
+  "required": [
+    "nome",
+    "email",
+    "password",
+    "administrador",
+    "_id"
+  ],
+  "properties": {
+    "nome": {
+      "type": "string"
+    },
+    "email": {
+      "type": "string",
+      "format": "email"
+    },
+    "password": {
+      "type": "string"
+    },
+    "administrador": {
+      "enum": [
+        "true",
+        "false"
+      ]
+    },
+    "_id": {
+      "type": "string",
+      "pattern": "^[a-zA-Z0-9]{16}$"
+    }
+  },
+  "additionalProperties": false
+}

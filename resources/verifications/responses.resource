@@ -19,6 +19,12 @@ Request Should Fail With
     Status Should Be    ${status}    ${response}
     Response Message Should Be    ${response}    ${message}
 
+Response Should Be
+    [Documentation]    Checks the status code and validates the body against ``data/schemas/<schema>.json``.
+    [Arguments]    ${response}    ${status}    ${schema}
+    Status Should Be    ${status}    ${response}
+    Response Should Match Schema    ${response}    ${schema}
+
 Response Should Have Field Error
     [Documentation]    Checks a 400 validation error for one field. ``rule`` is a key of
     ...    ``MSG.field_rules``, so ``email`` + ``required`` expects "email é obrigatório".

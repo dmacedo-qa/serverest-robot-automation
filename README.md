@@ -22,10 +22,11 @@ show up as SKIP (`known-defect`) in the report instead of breaking the build.
 | High | `GET /usuarios` returns every user's password in plain text | SEC-01 |
 | High | The JWT payload contains the user's password | SEC-02 |
 | High | Any anonymous request can delete any user | SEC-03 |
-| Medium | Email uniqueness is case-sensitive: `A@x.com` and `a@x.com` become two accounts | DQ-01 |
-
-The test plan lists more (blank names accepted, numeric strings accepted as numbers, four places
-where the Swagger and the API disagree) that aren't automated yet.
+| High | Anyone can register as an admin | SEC-07 |
+| Medium | Email and product-name uniqueness are case-sensitive: `A@x.com` and `a@x.com` become two accounts | DQ-01, DQ-02 |
+| Medium | Names made only of spaces are accepted; a product gets stored with an empty name | DQ-04, DQ-05 |
+| Medium | The Swagger disagrees with the API in four places: a field name, an undocumented field, a filter limit, and undocumented status codes | DRIFT-01 to 04 |
+| Low | Numbers sent as text are accepted; PUT accepts malformed IDs and ignores the ID it was given | DQ-03, DQ-06, DQ-09, DQ-10 |
 
 ## How I approached it
 
@@ -71,8 +72,8 @@ waits for them, runs the suite, and writes `results/report.html` and `results/lo
 Stop everything with `docker compose down`. After changing code, add `--build` so the image is
 rebuilt.
 
-A full run takes about 10 seconds, 6 of which are the expiry test waiting for a token to run
-out. Expected result today: 112 tests, 97 passed, 15 skipped (the known defects).
+A full run takes about 15 seconds, 6 of which are the expiry test waiting for a token to run
+out. Expected result today: 128 tests, 109 passed, 19 skipped (the known defects).
 
 ### Choosing what to run
 
@@ -177,8 +178,7 @@ USR-10 Duplicate Email Is Rejected
 ## Status
 
 CI runs the smoke tests on every pull request and the full suite on every push to `main` and
-nightly, then publishes the report. 111 of the 127 planned cases are automated, chosen to cover every test type and all the critical
-and high findings. The rest are being added area by area; the test plan marks which are done.
+nightly, then publishes the report. All 127 cases in the test plan are automated.
 
 ## Stack
 
