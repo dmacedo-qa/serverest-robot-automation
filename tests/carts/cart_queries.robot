@@ -46,16 +46,8 @@ CRT-15 Unknown Or Malformed Cart ID Is Rejected
 
 CRT-16 Invalid Cart Filters Are Rejected
     [Tags]    CRT-16    negative    priority:low
-    [Template]    Cart Filter Should Be Rejected
-    # filter             value     rule
-    precoTotal           0         positive_number
-    precoTotal           abc       number
-    quantidadeTotal      -1        positive_number
-
-
-*** Keywords ***
-Cart Filter Should Be Rejected
-    [Documentation]    GET /carrinhos with one invalid query filter.
-    [Arguments]    ${filter}    ${value}    ${rule}
-    ${response}=    GET Carts    ${filter}=${value}
-    Response Should Have Field Error    ${response}    ${filter}    ${rule}
+    [Template]    Filter Should Be Rejected
+    # list endpoint    filter             value        rule
+    GET Carts          precoTotal         0            positive_number
+    GET Carts          precoTotal         abc          number
+    GET Carts          quantidadeTotal    -1           positive_number

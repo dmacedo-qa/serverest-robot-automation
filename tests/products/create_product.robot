@@ -136,12 +136,8 @@ Product Payload Should Be Rejected
     [Documentation]    Removes or replaces one field of a valid product and checks the field error.
     [Arguments]    ${field}    ${value}    ${rule}
     ${admin}=    Create Admin With Token
-    ${product}=    Generate Product
-    IF    $value == '<missing>'
-        Remove From Dictionary    ${product}    ${field}
-    ELSE
-        Set To Dictionary    ${product}    ${field}=${value}
-    END
+    ${valid}=    Generate Product
+    ${product}=    Payload With Field    ${valid}    ${field}    ${value}
     ${response}=    POST Product    ${product}    ${admin}[token]
     Register Response For Cleanup    product    ${response}    ${admin}[token]
     Response Should Have Field Error    ${response}    ${field}    ${rule}

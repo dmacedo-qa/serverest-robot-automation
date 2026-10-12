@@ -33,6 +33,13 @@ Response Should Have Field Error
     VAR    ${expected}    ${field} ${MSG.field_rules}[${rule}]
     Should Be Equal    ${response.json()}[${field}]    ${expected}
 
+Filter Should Be Rejected
+    [Documentation]    Calls a list endpoint keyword (``GET Users``, ``GET Products``, ``GET Carts``)
+    ...    with one invalid filter and checks the field error.
+    [Arguments]    ${list_keyword}    ${filter}    ${value}    ${rule}
+    ${response}=    Run Keyword    ${list_keyword}    ${filter}=${value}
+    Response Should Have Field Error    ${response}    ${filter}    ${rule}
+
 Response Should Contain Bearer Token
     [Documentation]    Checks that ``authorization`` is ``Bearer <JWT>``, without ever logging the token.
     [Arguments]    ${response}

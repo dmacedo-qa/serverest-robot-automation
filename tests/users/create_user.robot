@@ -116,12 +116,8 @@ New User Should Be Created And Retrievable
 User Payload Should Be Rejected
     [Documentation]    Removes or replaces one field of a valid user and checks the field error.
     [Arguments]    ${field}    ${value}    ${rule}
-    ${user}=    Generate User
-    IF    $value == '<missing>'
-        Remove From Dictionary    ${user}    ${field}
-    ELSE
-        Set To Dictionary    ${user}    ${field}=${value}
-    END
+    ${valid}=    Generate User
+    ${user}=    Payload With Field    ${valid}    ${field}    ${value}
     ${response}=    POST User    ${user}
     Register Response For Cleanup    user    ${response}
     Response Should Have Field Error    ${response}    ${field}    ${rule}

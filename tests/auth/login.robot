@@ -94,11 +94,7 @@ AUTH-08 Login Email Is Case-Sensitive
 Login Body Should Be Rejected
     [Documentation]    Removes or replaces one field of a valid login body and checks the field error.
     [Arguments]    ${field}    ${value}    ${rule}
-    VAR    &{body}    email=someone@example.com    password=any-password
-    IF    $value == '<missing>'
-        Remove From Dictionary    ${body}    ${field}
-    ELSE
-        Set To Dictionary    ${body}    ${field}=${value}
-    END
+    VAR    &{valid}    email=someone@example.com    password=any-password
+    ${body}=    Payload With Field    ${valid}    ${field}    ${value}
     ${response}=    POST Login With Body    ${body}
     Response Should Have Field Error    ${response}    ${field}    ${rule}

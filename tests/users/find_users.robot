@@ -77,11 +77,11 @@ USR-14 Malformed User ID Is Rejected
 
 USR-16 Invalid Filters Are Rejected
     [Tags]    USR-16    negative    priority:low
-    [Template]    User Filter Should Be Rejected
-    # filter          value         rule
-    email             not-email     invalid_email
-    administrador     TRUE          boolean_string
-    cidade            Recife        not_allowed
+    [Template]    Filter Should Be Rejected
+    # list endpoint    filter             value        rule
+    GET Users          email              not-email    invalid_email
+    GET Users          administrador      TRUE         boolean_string
+    GET Users          cidade             Recife       not_allowed
 
 USR-22 Empty Filter Value Is Ignored
     [Documentation]    ``?nome=`` must not restrict the result: combined with an email filter it
@@ -101,9 +101,3 @@ Malformed User Id Should Be Rejected
     [Arguments]    ${user_id}
     ${response}=    GET User By Id    ${user_id}
     Response Should Have Field Error    ${response}    id    sixteen_chars
-
-User Filter Should Be Rejected
-    [Documentation]    GET /usuarios with one invalid query filter.
-    [Arguments]    ${filter}    ${value}    ${rule}
-    ${response}=    GET Users    ${filter}=${value}
-    Response Should Have Field Error    ${response}    ${filter}    ${rule}

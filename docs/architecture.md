@@ -61,6 +61,11 @@ would need a second copy of the call. So:
    `resources/main.resource`. Session setup, cleanup teardown, and the `regression` tag live in
    `tests/__init__.robot`; each area folder's `__init__.robot` sets its area tag. A new test file
    needs one import line and can't forget the setup, the cleanup, or its area tag.
+9. **A keyword lives where it's used.** A step used by one suite only (typically the step of a
+   data-driven `[Template]`) stays in that test file, next to the rows it consumes, so the test
+   reads in one place. As soon as a second suite needs the same logic, it moves to `resources/`
+   (for example `Filter Should Be Rejected`, shared by the users, products, and carts suites)
+   or to the data factory (`Payload With Field`).
 
 ## 3. Example across the layers
 

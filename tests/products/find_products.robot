@@ -34,12 +34,12 @@ PRD-12 Unknown Or Malformed Product ID Is Rejected
 
 PRD-13 Invalid Product Filters Are Rejected
     [Tags]    PRD-13    negative    priority:low
-    [Template]    Product Filter Should Be Rejected
-    # filter        value     rule
-    preco           abc       number
-    preco           0         positive_number
-    quantidade      -1        min_zero
-    categoria       mouse     not_allowed
+    [Template]    Filter Should Be Rejected
+    # list endpoint    filter             value        rule
+    GET Products       preco              abc          number
+    GET Products       preco              0            positive_number
+    GET Products       quantidade         -1           min_zero
+    GET Products       categoria          mouse        not_allowed
 
 
 *** Keywords ***
@@ -66,9 +66,3 @@ Product Filter Should Match
             Should Be Equal As Integers    ${listed}[${field}]    ${value}
         END
     END
-
-Product Filter Should Be Rejected
-    [Documentation]    GET /produtos with one invalid query filter.
-    [Arguments]    ${filter}    ${value}    ${rule}
-    ${response}=    GET Products    ${filter}=${value}
-    Response Should Have Field Error    ${response}    ${filter}    ${rule}

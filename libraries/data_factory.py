@@ -94,6 +94,17 @@ class DataFactory:
         return f"qa.{self.run_id}."
 
     @keyword
+    def payload_with_field(self, payload: dict, field: str, value) -> dict:
+        """Returns a copy of ``payload`` with ``field`` set to ``value``, or removed when
+        ``value`` is ``<missing>``. Used by data-driven validation tests."""
+        changed = dict(payload)
+        if value == "<missing>":
+            changed.pop(field, None)
+        else:
+            changed[field] = value
+        return changed
+
+    @keyword
     def cart_items(self, *product_and_quantity) -> list[dict]:
         """Builds the ``produtos`` list of a cart from pairs: ``product_id  quantity  ...``."""
         if len(product_and_quantity) % 2:
