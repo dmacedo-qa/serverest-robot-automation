@@ -343,7 +343,8 @@ show up in reports without blocking the pipeline.
 
 ## 9. Findings
 
-Defects are reported with evidence in the test log. The two critical ones, with steps to reproduce:
+The complete list, with severity, steps, root cause, and suggested fixes, is in the
+[bug report](bug-report.md). The two most important ones:
 
 **DQ-07 / DQ-08: overselling through non-adjacent duplicates**
 

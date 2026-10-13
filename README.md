@@ -12,7 +12,8 @@ RequestsLibrary, running against a pinned ServeRest 3.2.2 in Docker.
 
 ## Defects found
 
-Each one is reproduced by an automated test. Those tests assert the correct behavior, so they
+The full [bug report](docs/bug-report.md) has steps, expected and actual results, and the root
+cause in the ServeRest source for each one. Each one is reproduced by an automated test. Those tests assert the correct behavior, so they
 show up as SKIP (`known-defect`) in the report instead of breaking the build.
 
 | Severity | Defect | Test |
